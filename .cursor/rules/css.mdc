@@ -1,0 +1,12 @@
+---
+description: "CSS rules"
+globs: /electron-app/**.css
+alwaysApply: false
+---
+
+# CSS rules
+
+- Keep consistency with existing styling
+- Write minimal CSS to achieve the desired effect
+- Use existing variables/styles from the global app.css whenever possible/appropriate
+- Use modern CSS features and practices
