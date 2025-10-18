@@ -45,6 +45,23 @@
 		// Initialize with current state
 		previousProductiveState = activeWindowStore.isProductive;
 
+		// ===== SIMPLE TEST: Listen for Python vision events =====
+		console.log('🔌 Setting up Python vision event listener...');
+
+		// Listen for focus updates from Python vision system
+		window.electronAPI?.onVisionFocusUpdate?.((data) => {
+			console.log('📊 Python focus update:', data);
+			if (data.focused) {
+				console.log('✅ User FOCUSED - Dubs sleeping');
+				dubsStore.setState('sleeping');
+			} else {
+				console.log('⚠️ User UNFOCUSED - Dubs barking');
+				dubsStore.setState('barking');
+			}
+		});
+
+		console.log('✅ Python vision listener ready');
+
 		// Clean up on unmount
 		return () => {
 			if (stateTimeout) clearTimeout(stateTimeout);

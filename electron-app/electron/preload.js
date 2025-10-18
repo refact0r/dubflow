@@ -26,6 +26,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 		ipcRenderer.on('dubs-state-change', (event, state) => callback(state));
 	},
 
+	// Python vision event listeners
+	onVisionFocusUpdate: (callback) => {
+		ipcRenderer.on('vision-focus-update', (event, data) => callback(data));
+	},
+	onVisionDistractionDetected: (callback) => {
+		ipcRenderer.on('vision-distraction-detected', (event, data) => callback(data));
+	},
+	onVisionFocusRestored: (callback) => {
+		ipcRenderer.on('vision-focus-restored', (event, data) => callback(data));
+	},
+
 	// Cleanup listeners
 	removeAllListeners: (channel) => {
 		ipcRenderer.removeAllListeners(channel);

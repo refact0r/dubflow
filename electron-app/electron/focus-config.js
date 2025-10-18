@@ -71,10 +71,7 @@ export const focusConfig = {
 		'netflix.com',
 		'tiktok.com',
 		'twitch.tv',
-		'discord.com/channels',
-		'slack.com/client',
-		'news.ycombinator.com',
-		'linkedin.com/feed'
+		'discord.com/channels'
 	],
 
 	/**
