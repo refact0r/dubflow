@@ -1,3 +1,189 @@
 ---
 alwaysApply: true
+# =========================================================
+# LockInDubs – Project Context & Development Rules
+# =========================================================
+
+# Objective:
+Build "LockInDubs" — a focus companion app that helps users stay productive using
+AI-driven feedback, webcam and activity monitoring, and a virtual pet overlay.
+The app should detect when a user is distracted, react in real-time through an
+animated character, and reward consistent focus through gamified elements.
+
+# Core Concept:
+LockInDubs features "Dubs," an intelligent, animated dog that sits as an overlay
+on the user’s desktop (and optionally mobile via notifications). Dubs monitors
+focus behavior and encourages the user to stay on task.
+
+When focused → Dubs sleeps or idles peacefully.
+When distracted → Dubs wakes up, reacts, and delivers a witty AI-generated reminder
+to “lock back in.”
+When goals are met → User can feed or reward Dubs, unlocking treats, decorations, and tokens.
+
+# Product Vision:
+Create a fun, motivational companion that merges accountability, humor, and data-driven insight.
+The app mimics the positive influence of a study partner — pushing users to achieve flow states.
+
+# Key Features (MVP Scope):
+1. **Webcam Focus Tracking**
+   - Detect face/eye direction using the webcam to estimate user attention.
+   - Optionally detect presence of distractions (e.g., looking at phone).
+
+2. **Active Window / Tab Tracking**
+   - Detect the user’s active OS window or browser tab.
+   - Mark as on-task or off-task based on goal context or predefined categories.
+
+3. **Overlay Character System**
+   - Always-on animated character (Dubs) rendered on screen.
+   - States:
+     - Sleeping (focused)
+     - Alert (noticing distraction)
+     - Reacting (AI message / animation)
+   - Overlay should have a transparent background and minimal performance impact.
+
+4. **AI Interaction**
+   - Use a local or cloud AI model to generate contextual, witty, motivational reactions.
+   - Customize tone/personality (e.g., playful, sarcastic, encouraging).
+
+5. **Pomodoro & Goal Management**
+   - User sets a timed session (e.g., 30 minutes) and task name.
+   - System tracks focus consistency during that period.
+   - On completion, if focus threshold met, user earns rewards for Dubs.
+
+6. **Dashboard & Analytics**
+   - Display timeline of distractions, focus percentage, and session summaries.
+   - Visualize progress over time with simple graphs or badges.
+   - Manage rewards and Dubs’ customizations.
+
+# Technical Notes:
+-**Frontend Stack:** Electron (for overlay + dashboard), or cross-platform equivalent.
+-**ML/Tracking:** OpenCV, MediaPipe, or lightweight focus detection models.
+-**System Access:** OS APIs for active window tracking, or screen activity capture.
+-**Overlay:** WebGL/canvas or Lottie-based animated sprite system.
+-**AI Backend:** Contextual LLM for generating Dubs’ dialogue.
+-**Storage:** Local DB (localStorage) for user stats and rewards.
+-**Privacy:** All tracking data should remain local unless user opts into sync.
+
+# =========================================================
+# PIPELINE – Python Computer Vision Component
+# =========================================================# Overview:
+The local Python module is responsible for real-time webcam frame analysis and
+determining whether the user is “locked in” (focused) or “not locked in” (distracted).
+It continuously updates a global boolean variable `userFocusState` that represents
+the current focus state of the user.
+
+This program communicates asynchronously with the ElectronJS frontend by sending
+JSON events whenever the user transitions between focus states.
+
+# Core Loop Summary:
+-**Frame Capture Rate:** ~20 FPS (to balance performance and accuracy).
+-**Global Variables:**
+  - `userFocusState`: current boolean indicating if user is focused.
+  - `consecutiveFrames`: counter tracking how many consecutive frames the user
+    has remained in the opposite state (used to debounce false triggers).
+  - `consecutiveFramesThreshold`: global integer defining how many frames must
+    confirm a change in focus before an event is triggered.
+
+---# Primary Event Loop (executed continuously):
+
+1. **Frame Acquisition**
+   - Capture current frame from OpenCV (`cv2.VideoCapture`).
+   - Send frame into the function `isUserFocused(frame)`.
+
+2. **Focus Determination**
+   - `isUserFocused(frame)` returns:
+     - `True` → user appears focused.     - `False` → user appears distracted or unfocused.
+
+
+# Decision Logic:
+
+## CASE 1: `isUserFocused(frame)` returns FALSE
+-If `userFocusState == False` → user already marked unfocused.- Continue loop; no state change or event triggered.
+- Else (`userFocusState == True`) → possible loss of focus.
+  - Increment `consecutiveFrames` counter.
+  - If `consecutiveFrames >= consecutiveFramesThreshold`:
+    - Set `userFocusState = False`
+    - Reset `consecutiveFrames = 0`
+    -**Initiate JSON Object Creation**:
+      - Include:
+        - `timestamp` (UTC)
+        - `event`: `"user_unfocused"`
+        - `context`:
+          - Results from AWS Rekognition (scene/context data)
+          - Supplementary OpenCV detections (e.g., head pose, phone presence)
+      - Send this JSON object to the ElectronJS frontend for handling.
+    - Continue main loop.
+
+## CASE 2: `isUserFocused(frame)` returns TRUE
+-If `userFocusState == True` → user remains focused.
+  - Continue loop; no action required.
+-Else (`userFocusState == False`) → possible regaining of focus.
+  -Increment `consecutiveFrames` counter.
+  -If `consecutiveFrames >= consecutiveFramesThreshold`:
+    - Set `userFocusState = True`
+    - Reset `consecutiveFrames = 0`
+    -**Initiate JSON Object Creation**:
+      - Include:
+        - `timestamp` (UTC)
+        - `event`: `"user_focused"`
+        - Optional metrics (eye alignment, posture stability, etc.)
+      - Send this JSON object to the ElectronJS frontend.
+    - Continue main loop.
+
+# Data Output:
+Each state-change event produces a JSON object of the form:{
+"timestamp": "<UTC>",
+"event": "user_focused [OR] user_unfocused",
+"context": {
+"rekognition_data": {...},
+"opencv_data": {...}
+}
+
+This payload is sent to the ElectronJS component for:
+- Logging on the dashboard timeline
+- Triggering Dubs’ behavioral animations and responses
+- Updating real-time statistics
+
+# Notes:
+- The frame loop should handle async or threaded execution to avoid blocking UI.
+- Rekognition and OpenCV calls should be throttled or queued to maintain smooth FPS.
+- Include a debug mode for local visualization of focus detection.
+- Consider future expansion to integrate sentiment or emotion detection for richer context.# =========================================================
+# DEVELOPMENT PRIORITIES (PYTHON MODULE)
+# =========================================================
+1. Implement and test the real-time frame capture loop.
+2. Develop and tune the `isUserFocused(frame)` model.
+3. Implement the consecutive frame debouncing logic.
+4. Add JSON creation + Electron IPC communication.
+5. Integrate AWS Rekognition for context enrichment.
+6. Add configuration for frame rate, thresholds, and debugging.
+7. Ensure the system gracefully handles camera or model errors.
+
+# UX / Tone:
+- Tone: friendly, humorous, mildly teasing (motivational, never insulting).
+- Visuals: cute, minimal, soft animations.
+- Feeling: as if your loyal friend is holding you accountable — supportive yet funny.
+
+# Example Flow:
+1. User launches LockInDubs → sets goal: “Finish essay,” 30 min session.
+2. Dubs sleeps quietly while user works.
+3. User checks phone → Dubs wakes, barks, and says “Eyes on the grind, champ.”
+4. User gets back to work → Dubs calms down and resumes idle animation.
+5. Session completes → Dashboard shows focus stats. User earns treat → feeds Dubs.
+
+# Development Priorities:
+1. Implement core focus detection loop (webcam + active window).
+2. Build simple overlay renderer for character state changes.
+3. Create session timer / Pomodoro base logic.
+4. Log focus data and visualize it in dashboard.
+5. Integrate basic AI text generation for Dubs’ responses.
+6. Add reward loop + customization mechanics.
+
+# Guiding Principle:
+Every interaction should reinforce positive focus habits while keeping the user smiling.
+Fun + Accountability = Sustainable Productivity.
+
+# =========================================================
+# End of LockInDubs Context
+# =========================================================
 ---

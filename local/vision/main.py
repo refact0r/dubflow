@@ -14,7 +14,7 @@ from typing import Dict, Any
 from config import Config
 from focus_detector_opencv import FocusDetectorOpenCV as FocusDetector
 from aws_rekognition import RekognitionAnalyzer
-from ipc_communication import IPCCommunicator
+from tcp_communication import TCPCommunicator
 
 class LockInDubsVision:
     """Main class for the LockInDubs vision system."""
@@ -29,7 +29,7 @@ class LockInDubsVision:
         # Initialize components
         self.focus_detector = FocusDetector()
         self.rekognition_analyzer = RekognitionAnalyzer()
-        self.ipc_communicator = IPCCommunicator()
+        self.ipc_communicator = TCPCommunicator()
         
         # Camera and timing
         self.camera = None
