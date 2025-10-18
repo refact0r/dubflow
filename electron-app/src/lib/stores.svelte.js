@@ -152,9 +152,9 @@ export class DubsStore {
 		const sprites = {
 			sleeping: 'dubs_sleeping.gif',
 			waking: 'dubs_waking_up.gif',
-			alert: 'dubs_mildly_annoyed.gif',
-			barking: 'dubs_barking_angry.gif',
-			standing: 'dubs_standing.gif'
+			alert: 'dubs_light_bark.gif',
+			barking: 'dubs_heavy_bark.gif',
+			standing: 'dubs_default_stance.gif'
 		};
 		return sprites[this.state] || sprites.sleeping;
 	}
