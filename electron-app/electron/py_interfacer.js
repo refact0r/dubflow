@@ -24,21 +24,21 @@ class PythonIPCInterface extends EventEmitter {
 	 */
 	async connect() {
 		try {
-			console.log('🔌 Connecting to Python vision system...');
+			//console.log('🔌 Connecting to Python vision system...');
 
 			// Create TCP socket
 			this.socket = new net.Socket();
 
 			// Connect to Python publisher
 			this.socket.connect(this.port, this.host, () => {
-				console.log(`✅ Connected to Python at ${this.host}:${this.port}`);
+				//console.log(`✅ Connected to Python at ${this.host}:${this.port}`);
 				this.isConnected = true;
 			});
 
 			// Set up message handling
 			this.setupMessageHandling();
 		} catch (error) {
-			console.error('❌ Failed to connect to Python:', error.message);
+			//console.error('❌ Failed to connect to Python:', error.message);
 			this.scheduleReconnect();
 		}
 	}
@@ -63,11 +63,11 @@ class PythonIPCInterface extends EventEmitter {
 						// Parse JSON message
 						const eventData = JSON.parse(line);
 
-						console.log('📊 Face Detection Data:', eventData);
+						//console.log('📊 Face Detection Data:', eventData);
 
 						// Emit events based on the event type
 						if (eventData.event === 'user_unfocused') {
-							console.log('⚠️ User UNFOCUSED! LOCK BACK IN!!');
+							console.log('User UNFOCUSED! LOCK BACK IN!!');
 							// Emit distraction detected event
 							this.emit('distraction_detected', eventData);
 							this.emit('focus_update', {
@@ -75,17 +75,19 @@ class PythonIPCInterface extends EventEmitter {
 								...eventData
 							});
 						} else if (eventData.event === 'user_focused') {
-							console.log('✅ User FOCUSED! GOOD JOB!!');
+							console.log('User FOCUSED! GOOD JOB!!');
 							// Emit focus restored event
 							this.emit('focus_restored', eventData);
 							this.emit('focus_update', {
 								focused: true,
 								...eventData
 							});
-						} else if (eventData.event === 'heartbeat') {
-							// Handle heartbeat messages
-							this.emit('heartbeat', eventData);
 						}
+
+                        // AWS Rekognition data ALL OUTPUTTED HERE!! Everything about room,
+                        // distractions, objects nearby, user's surroundings, etc will be here.
+                        console.log(eventData.context.rekognition_data);
+
 					} catch (error) {
 						console.error('❌ Failed to parse message:', error.message);
 						console.log('Raw message:', line);
@@ -96,13 +98,13 @@ class PythonIPCInterface extends EventEmitter {
 
 		// Handle socket errors
 		this.socket.on('error', (error) => {
-			console.error('❌ Socket error:', error.message);
+			//console.error('❌ Socket error:', error.message);
 			this.handleDisconnection();
 		});
 
 		// Handle connection close
 		this.socket.on('close', () => {
-			console.log('🔌 Connection closed');
+			//console.log('🔌 Connection closed');
 			this.handleDisconnection();
 		});
 	}
@@ -112,7 +114,7 @@ class PythonIPCInterface extends EventEmitter {
 	 */
 	handleDisconnection() {
 		this.isConnected = false;
-		console.log('🔌 Disconnected from Python system');
+		//console.log('🔌 Disconnected from Python system');
 		this.scheduleReconnect();
 	}
 
@@ -121,7 +123,7 @@ class PythonIPCInterface extends EventEmitter {
 	 */
 	scheduleReconnect() {
 		setTimeout(() => {
-			console.log('🔄 Attempting to reconnect...');
+			//console.log('🔄 Attempting to reconnect...');
 			this.connect();
 		}, 5000); // 5 second delay
 	}
@@ -130,7 +132,7 @@ class PythonIPCInterface extends EventEmitter {
 	 * Disconnect from Python system
 	 */
 	async disconnect() {
-		console.log('🔌 Disconnecting from Python system...');
+		//console.log('🔌 Disconnecting from Python system...');
 
 		if (this.socket) {
 			try {
@@ -142,7 +144,7 @@ class PythonIPCInterface extends EventEmitter {
 		}
 
 		this.isConnected = false;
-		console.log('✅ Disconnected from Python system');
+		//console.log('✅ Disconnected from Python system');
 	}
 }
 

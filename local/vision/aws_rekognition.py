@@ -187,7 +187,7 @@ class RekognitionAnalyzer:
         scene_analysis = self.analyze_scene(frame)
         face_analysis = self.detect_faces(frame)
 
-        print("Scene Analysis: ", scene_analysis)
+        #print("Scene Analysis: ", scene_analysis)
         
         # Combine results
         context = {

@@ -69,7 +69,8 @@ class TCPCommunicator:
         # Get current UTC timestamp
         timestamp = datetime.now(timezone.utc).isoformat()
         
-        print("Rekognition data in create_event: ", str(context_data.get('rekognition_data', {})))
+        #print("Rekognition data in create_event: ", context_data)
+
         
         # Create the event structure
         event = {
@@ -109,6 +110,7 @@ class TCPCommunicator:
             return False
         
         try:
+            print("For event type ", event_type, " the context_data is ", context_data)
             # Create the event JSON
             event = self.create_event_json(event_type, context_data)
             
@@ -118,9 +120,9 @@ class TCPCommunicator:
             # Send the event
             self.client_socket.send(event_json.encode('utf-8'))
             
-            if Config.DEBUG_MODE:
-                print(f"Sent event: {event_type}")
-                print(f"Event data: {event_json.strip()}")
+            # if Config.DEBUG_MODE:
+            #     print(f"Sent event: {event_type}")
+            #     print(f"Event data: {event_json.strip()}")
             
             return True
             

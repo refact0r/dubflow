@@ -46,6 +46,7 @@ class LockInDubsVision:
         self.opencv_context = {}
         self.frame = []
         self.frame_processed = False
+        self.global_rekognition_context = {}
 
         # Statistics
         self.stats = {
@@ -94,18 +95,17 @@ class LockInDubsVision:
         # Get focus detection result
         self.is_focused, self.opencv_context = self.focus_detector.isUserFocused(frame)
 
-        # Get AWS Rekognition context (throttled to avoid excessive API calls)
-        rekognition_context = {}
+        # Get AWS Rekognition context (throttled to avoid excessive API calls
 
         if (
             self.stats["total_frames"] % 30 == 0
         ):  # Every 30 frames (~1.5 seconds at 20 FPS)
-            rekognition_context = self.rekognition_analyzer.get_context_summary(frame)
+            self.global_rekognition_context = self.rekognition_analyzer.get_context_summary(frame)
 
         # Combine context data
         context_data = {
             "opencv_data": self.opencv_context,
-            "rekognition_data": rekognition_context,
+            "rekognition_data": self.global_rekognition_context,
             **self.opencv_context,  # Include opencv data at top level for easy access
         }
 
@@ -132,7 +132,7 @@ class LockInDubsVision:
                     self.consecutiveFrames = 0
                     self.stats["state_changes"] += 1
 
-                    # Send focus event to Electron
+                    # Send focus event to Electron                    
                     self.ipc_communicator.send_focus_event(True, context_data)
 
                     if Config.DEBUG_MODE:
