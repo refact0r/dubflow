@@ -199,10 +199,10 @@ class RekognitionAnalyzer:
         
         # Determine distraction level
         if scene_analysis.get('available', False):
-            distraction_count = scene_analysis.get('distraction_count', 0)
-            if distraction_count > 2:
+            distraction_count = ("phone" in str(scene_analysis))
+            if distraction_count:
                 context['distraction_level'] = 'high'
-            elif distraction_count > 0:
+            elif distraction_count:
                 context['distraction_level'] = 'medium'
         
         return context

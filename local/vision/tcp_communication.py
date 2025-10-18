@@ -69,6 +69,8 @@ class TCPCommunicator:
         # Get current UTC timestamp
         timestamp = datetime.now(timezone.utc).isoformat()
         
+        print("Rekognition data in create_event: ", str(context_data.get('rekognition_data', {})))
+        
         # Create the event structure
         event = {
             "timestamp": timestamp,

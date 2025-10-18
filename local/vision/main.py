@@ -173,10 +173,10 @@ class LockInDubsVision:
                 self.process_frame(self.frame)
 
                 # Send heartbeat every 5 seconds
-                if int(current_time) % 5 == 0 and int(current_time) != int(
-                    self.last_frame_time
-                ):
-                    self.ipc_communicator.send_heartbeat()
+                # if int(current_time) % 5 == 0 and int(current_time) != int(
+                #     self.last_frame_time
+                # ):
+                #     self.ipc_communicator.send_heartbeat()
 
                 self.last_frame_time = current_time
 
