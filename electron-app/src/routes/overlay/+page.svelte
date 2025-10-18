@@ -94,7 +94,7 @@
 	}
 
 	.dubs-sprite {
-		width: 256px;
+		width: 240px;
 		object-fit: contain;
 		image-rendering: pixelated;
 		filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
