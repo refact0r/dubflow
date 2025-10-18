@@ -1,0 +1,17 @@
+# AWS Configuration
+AWS_ACCESS_KEY_ID=your_aws_access_key_here
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
+AWS_REGION=us-east-2
+
+# Camera Configuration
+CAMERA_INDEX=0
+FRAME_RATE=20
+CONSECUTIVE_FRAMES_THRESHOLD=10
+
+# Debug Configuration
+DEBUG_MODE=true
+SHOW_VIDEO_FEED=true
+SAVE_DEBUG_FRAMES=false
+
+# IPC Configuration
+IPC_PORT=5555
