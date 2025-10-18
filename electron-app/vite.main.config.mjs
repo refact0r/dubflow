@@ -8,6 +8,9 @@ export default defineConfig({
 			formats: ['es'],
 			entry: 'electron/main.js',
 			fileName: 'main'
+		},
+		rollupOptions: {
+			external: ['get-windows']
 		}
 	}
 });
