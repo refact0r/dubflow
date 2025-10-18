@@ -64,6 +64,28 @@ class PythonIPCInterface extends EventEmitter {
 						const eventData = JSON.parse(line);
 
 						//console.log('📊 Face Detection Data:', eventData);
+                        // EVENT DATA SCHEMA:
+                        /*
+                        event = {
+                            "timestamp": timestamp, HIGHLY IMPORTANT this is your timestamp
+                            "event": event_type,
+                            "context": {
+                                "opencv_data": STRING context dump of all opencv data
+                                "rekognition_data": STRING context dump of all AWS rekog. data,
+                                "focus_metrics": {
+                                    "eye_aspect_ratio": context_data.get('eye_aspect_ratio', 0.0),
+                                    "head_pose": context_data.get('head_pose', (0.0, 0.0, 0.0)),
+                                    "gaze_direction": context_data.get('gaze_direction', (0.0, 0.0)),
+                                    "confidence": context_data.get('confidence', 0.0),
+                                    "face_detected": str(context_data.get('face_detected', "False"))
+                                },
+                                "session_info": {
+                                    "frame_rate": Config.FRAME_RATE,
+                                    "threshold": Config.CONSECUTIVE_FRAMES_THRESHOLD
+                                }
+                            }
+                        }
+                        */
 
 						// Emit events based on the event type
 						if (eventData.event === 'user_unfocused') {
@@ -86,7 +108,9 @@ class PythonIPCInterface extends EventEmitter {
 
                         // AWS Rekognition data ALL OUTPUTTED HERE!! Everything about room,
                         // distractions, objects nearby, user's surroundings, etc will be here.
-                        console.log(eventData.context.rekognition_data);
+                        // console.log(eventData.context.rekognition_data);
+                        console.log('TIME: ', eventData.timestamp)
+                        this.printRekognitionContext(eventData.context.rekognition_data)
 
 					} catch (error) {
 						console.error('❌ Failed to parse message:', error.message);
@@ -108,6 +132,13 @@ class PythonIPCInterface extends EventEmitter {
 			this.handleDisconnection();
 		});
 	}
+
+    /**
+     * Display all AWS Rekognition context in a clever, readable manner.
+     */
+    printRekognitionContext(rekognitionJSON) {
+        console.log(JSON.parse(rekognitionJSON));
+    }
 
 	/**
 	 * Handle disconnection
