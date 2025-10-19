@@ -66,7 +66,7 @@
 	 */
 	function handleUserRefocused(refocusData) {
 		console.log('😴 User refocused, resetting dog state:', refocusData);
-		dubsStore.setState('dubs_to_sleep');
+		//dubsStore.setState('dubs_to_sleep');
 		// Clear any pending animations
 		if (animationTimeout) clearTimeout(animationTimeout);
 
