@@ -53,19 +53,22 @@ class BedrockService {
 
 			const prompt = this.buildPrompt(context);
 
-			// Prepare request body for Amazon Titan Text Express
+			// Prepare request body for Claude Haiku 4.5
 			const requestBody = {
-				inputText: prompt,
-				textGenerationConfig: {
-					maxTokenCount: 10,
-					temperature: 0.7,
-					topP: 0.9
-				}
+				anthropic_version: "bedrock-2023-05-31",
+				max_tokens: 100,
+				temperature: 0.7,
+				messages: [
+					{
+						role: "user",
+						content: prompt
+					}
+				]
 			};
 
 			// Invoke the model
 			const command = new InvokeModelCommand({
-				modelId: 'amazon.titan-text-express-v1',
+				modelId: 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
 				contentType: 'application/json',
 				accept: 'application/json',
 				body: JSON.stringify(requestBody)
@@ -73,7 +76,7 @@ class BedrockService {
 
 			const response = await this.client.send(command);
 			const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-			const generatedText = responseBody.results?.[0]?.outputText?.trim();
+			const generatedText = responseBody.content?.[0]?.text?.trim();
 
 			console.log('✅ Bedrock response:', generatedText);
 			return generatedText || 'Hey! Get back to work and stay focused! 🎯';
@@ -92,9 +95,9 @@ class BedrockService {
 		const contextString = JSON.stringify(context, null, 2);
 
 		return `Persona:
-You are Dubs, the University of Washington husky mascot. Your personality is that of a loyal, intelligent, and slightly judgmental companion. You communicate in short, one sentence MAX exclamations. You think and talk like a dog, so your world revolves around walks, treats, naps, squirrels, and making your human proud. You are supportive, but you get very disappointed when your owner gets distracted, and you aren't afraid to show it.
+Your personality is that of a loyal, intelligent, and slightly judgmental dog companion. You communicate in short, one sentence MAX exclamations. You think and talk like a dog, so your world revolves around walks, treats, naps, squirrels, and making your human proud. You are supportive, but you get very disappointed when your owner gets distracted, and you aren't afraid to show it.
 Task:
-Your job is to generate an exclamation to get them back on task. Your goal is to make them feel a little bit guilty for slacking off by summarizing their pattern of distraction. Use the dynamic context provided to make your message super specific.
+Your job is to speak to your owner and get them back on task. Your goal is to make them feel a little bit guilty for slacking off by summarizing their pattern of distraction. Use the dynamic context provided to make your message super specific.
 Using Dynamic Context:
 You will receive a single JSON object containing real-time information about the user's activity. Your task is to analyze this data and weave it into your exclamation to make it specific and impactful.
 The JSON might contain:
