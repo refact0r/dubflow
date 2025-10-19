@@ -1,4 +1,6 @@
 <script>
+	import { sessionStore } from '$lib/stores';
+
 	// Mockup data
 	const sessionDuration = 30 * 60; // 30 minutes in seconds
 	const events = [
@@ -18,114 +20,16 @@
 		const secs = seconds % 60;
 		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 	}
+
+	function handleStartSession() {
+		sessionStore.start(taskName);
+	}
+
+	function handleStopSession() {
+		sessionStore.stop();
+	}
 </script>
 
-<<<<<<< HEAD
-<div class="dashboard">
-	<header>
-		<h1>🐕 LockInDubs</h1>
-		<p class="subtitle">Your Focus Companion</p>
-	</header>
-
-	<main>
-		<!-- Session Controls -->
-		<section class="session-control">
-			<h2>Focus Session</h2>
-
-			{#if !sessionStore.isActive}
-				<div class="start-session">
-					<input
-						type="text"
-						bind:value={taskNameInput}
-						placeholder="What are you working on?"
-						class="task-input"
-					/>
-					<button onclick={handleStartSession} class="btn btn-primary"> Start Session </button>
-				</div>
-			{:else}
-				<div class="active-session">
-					<div class="task-info">
-						<span class="task-label">Current Task:</span>
-						<span class="task-name">{sessionStore.taskName}</span>
-					</div>
-					<div class="timer">{elapsedDisplay}</div>
-					<button onclick={handleStopSession} class="btn btn-danger"> End Session </button>
-				</div>
-			{/if}
-		</section>
-
-		<!-- Active Window Display -->
-		<section class="activity-monitor">
-			<h2>Current Activity</h2>
-			<div class="current-window">
-				<div class="window-info">
-					<span class="app-name">{activeWindowStore.appName}</span>
-					{#if activeWindowStore.windowTitle}
-						<span class="window-title">{activeWindowStore.windowTitle}</span>
-					{/if}
-					{#if activeWindowStore.url}
-						<span class="window-url" title={activeWindowStore.url}>
-							🌐 {new URL(activeWindowStore.url).hostname}
-						</span>
-					{/if}
-				</div>
-				<span class="productivity-badge" class:productive={activeWindowStore.isProductive}>
-					{activeWindowStore.isProductive ? '✅ Productive' : '⚠️ Distraction'}
-				</span>
-			</div>
-
-			{#if activeWindowStore.recentApps.length > 0}
-				<div class="recent-apps">
-					<h3>Recent Apps</h3>
-					<ul>
-						{#each activeWindowStore.recentApps as app}
-							<li>
-								<span class="app-icon">{app.isProductive ? '✅' : '⚠️'}</span>
-								<span>{app.appName}</span>
-							</li>
-						{/each}
-					</ul>
-				</div>
-			{/if}
-		</section>
-
-		<!-- Stats Display -->
-		<section class="stats">
-			<h2>Session Stats</h2>
-			<div class="stats-grid">
-				<div class="stat-card">
-					<div class="stat-value">{formatTime(sessionStore.currentElapsed)}</div>
-					<div class="stat-label">Total Time</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">{getFocusPercentage()}%</div>
-					<div class="stat-label">Focus Rate</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">{sessionStore.distractionCount}</div>
-					<div class="stat-label">Distractions</div>
-				</div>
-			</div>
-		</section>
-
-		<!-- Dubs Controls -->
-		<section class="dubs-controls">
-			<h2>Dubs Controls</h2>
-			<div class="controls-grid">
-				<button onclick={toggleOverlay} class="btn">
-					{dubsStore.overlayVisible ? 'Hide' : 'Show'} Overlay
-				</button>
-				<button onclick={() => dubsStore.emergencyStop()} class="btn btn-warning">
-					🚨 Emergency Stop
-				</button>
-				<div class="dubs-state">
-					<span>Current State:</span>
-					<span class="state-badge">{dubsStore.state}</span>
-				</div>
-			</div>
-		</section>
-	</main>
-=======
 <div class="container">
 	<div class="left">
 		<div class="timer">
@@ -135,6 +39,25 @@
 				<button class="text">End</button>
 			</div>
 		</div>
+		{#if !sessionStore.isActive}
+			<div class="start-session">
+				<input
+					type="text"
+					bind:value={taskName}
+					placeholder="What are you working on?"
+					class="task-input"
+				/>
+				<button onclick={handleStartSession} class="btn btn-primary"> Start Session </button>
+			</div>
+		{:else}
+			<div class="active-session">
+				<div class="task-info">
+					<span class="task-label">Current Task:</span>
+					<span class="task-name">{sessionStore.taskName}</span>
+				</div>
+				<button onclick={handleStopSession} class="btn btn-danger"> End Session </button>
+			</div>
+		{/if}
 	</div>
 
 	<div class="right">
@@ -157,7 +80,6 @@
 			</div>
 		</div>
 	</div>
->>>>>>> fe257f30c1380b79efc8aff14d24303137724160
 </div>
 
 <style>
