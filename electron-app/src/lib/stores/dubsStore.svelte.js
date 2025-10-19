@@ -42,7 +42,7 @@ export class DubsStore {
 
 	// Simply append .gif to the state name to get the filename
 	get spriteFile() {
-		return `${this.state}.gif`;
+		return `dubs/${this.state}.gif`;
 	}
 }
 

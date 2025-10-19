@@ -4,6 +4,10 @@
 
 	let previousProductiveState = $state(true);
 	let stateTimeout = null;
+	let sleepTimeout = null;
+	let lastFocusState = $state(null); // Track last state to prevent duplicates
+
+	const ANIMATION_DELAY = (3 / 7) * 1000; // Exactly 4/7 seconds in milliseconds (~571ms)
 
 	/**
 	 * Play voice notification using ElevenLabs
@@ -15,15 +19,15 @@
 
 			if (result.success) {
 				console.log(`✅ Playing message: "${result.message}"`);
-				
+
 				// Convert base64 audio data to audio buffer
-				const audioData = Uint8Array.from(atob(result.audioData), c => c.charCodeAt(0));
+				const audioData = Uint8Array.from(atob(result.audioData), (c) => c.charCodeAt(0));
 				const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
 				const audioUrl = URL.createObjectURL(audioBlob);
-				
+
 				// Play the audio
 				const audio = new Audio(audioUrl);
-				audio.play().catch(err => {
+				audio.play().catch((err) => {
 					console.error('Failed to play audio:', err);
 				});
 
@@ -46,33 +50,43 @@
 
 		// Only react if session is active and state changed
 		if (isActive && previousProductiveState !== isProductive) {
+			// Clear all pending timeouts
 			if (stateTimeout) clearTimeout(stateTimeout);
+			if (sleepTimeout) clearTimeout(sleepTimeout);
 
 			if (!isProductive) {
-				// User got distracted
+				// User got distracted - play waking up animation
 				dubsStore.setState('dubs_waking_up');
 
-				// Transition to alert/barking after waking animation
+				// Wait exactly 4/7 seconds for animation to complete
 				stateTimeout = setTimeout(() => {
-					dubsStore.setState('dubs_light_bark');
+					// Initially show default stance (mild concern)
+					dubsStore.setState('dubs_default_stance');
 
-					// Optionally escalate to barking if distraction continues
+					// Escalate to heavy bark if distraction continues for 3+ seconds
 					stateTimeout = setTimeout(() => {
 						if (!activeWindowStore.isProductive) {
-							dubsStore.setState('barking');
+							dubsStore.setState('dubs_heavy_bark');
 							// Play voice notification when barking starts
 							playVoiceNotification();
 						}
-					}, 5000);
-				}, 2000);
+					}, 3000);
+				}, ANIMATION_DELAY);
 			} else {
-				// User returned to focus
-				dubsStore.setState('dubs_sleeping');
+				// User returned to focus - play going to sleep animation
+				dubsStore.setState('dubs_to_sleep');
+
+				// Wait exactly 4/7 seconds for animation to complete
+				sleepTimeout = setTimeout(() => {
+					dubsStore.setState('dubs_sleeping');
+				}, ANIMATION_DELAY);
 			}
 
 			previousProductiveState = isProductive;
 		} else if (!isActive) {
 			// No active session, keep Dubs sleeping
+			if (stateTimeout) clearTimeout(stateTimeout);
+			if (sleepTimeout) clearTimeout(sleepTimeout);
 			dubsStore.setState('dubs_sleeping');
 		}
 	});
@@ -87,14 +101,49 @@
 		// Listen for focus updates from Python vision system
 		window.electronAPI?.onVisionFocusUpdate?.((data) => {
 			console.log('📊 Python focus update:', data);
+
+			// Prevent duplicate state changes
+			if (lastFocusState === data.focused) {
+				return;
+			}
+			lastFocusState = data.focused;
+
 			if (data.focused) {
-				console.log('✅ User FOCUSED - Dubs sleeping');
-				dubsStore.setState('dubs_sleeping');
+				console.log('✅ User FOCUSED - Dubs going to sleep');
+				// Clear any pending timeouts
+				if (stateTimeout) clearTimeout(stateTimeout);
+				if (sleepTimeout) clearTimeout(sleepTimeout);
+
+				// Play going to sleep animation
+				dubsStore.setState('dubs_to_sleep');
+
+				// Wait exactly 4/7 seconds for animation to complete
+				sleepTimeout = setTimeout(() => {
+					dubsStore.setState('dubs_sleeping');
+				}, ANIMATION_DELAY);
 			} else {
-				console.log('⚠️ User UNFOCUSED - Dubs barking');
-				dubsStore.setState('barking');
-				// Play voice notification when barking starts
-				playVoiceNotification();
+				console.log('⚠️ User UNFOCUSED - Dubs waking up');
+				// Clear any pending timeouts
+				if (stateTimeout) clearTimeout(stateTimeout);
+				if (sleepTimeout) clearTimeout(sleepTimeout);
+
+				// Play waking up animation first
+				dubsStore.setState('dubs_waking_up');
+
+				// Wait exactly 4/7 seconds for animation to complete
+				stateTimeout = setTimeout(() => {
+					// Initially show default stance
+					dubsStore.setState('dubs_default_stance');
+
+					// Escalate to heavy bark if distraction continues for 3+ seconds
+					stateTimeout = setTimeout(() => {
+						if (lastFocusState === false) {
+							// Still unfocused
+							dubsStore.setState('dubs_heavy_bark');
+							playVoiceNotification();
+						}
+					}, 3000);
+				}, ANIMATION_DELAY);
 			}
 		});
 
@@ -103,6 +152,7 @@
 		// Clean up on unmount
 		return () => {
 			if (stateTimeout) clearTimeout(stateTimeout);
+			if (sleepTimeout) clearTimeout(sleepTimeout);
 		};
 	});
 </script>
@@ -114,7 +164,9 @@
 
 	{#if sessionStore.isActive && dubsStore.state !== 'dubs_sleeping'}
 		<div class="thought-bubble">
-			{#if dubsStore.state === 'dubs_light_bark'}
+			{#if dubsStore.state === 'dubs_default_stance'}
+				<p>Hey... focus up! 👀</p>
+			{:else if dubsStore.state === 'dubs_light_bark'}
 				<p>Hey! Stay focused! 🎯</p>
 			{:else if dubsStore.state === 'dubs_heavy_bark'}
 				<p>LOCK IN! 🔥</p>
