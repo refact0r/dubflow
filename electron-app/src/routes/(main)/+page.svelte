@@ -509,6 +509,11 @@
 	.segment {
 		height: 100%;
 		transition: width 0.3s ease;
+		border-right: 1px solid var(--txt-1);
+	}
+
+	.segment:last-child {
+		border-right: none;
 	}
 
 	.segment.focused {

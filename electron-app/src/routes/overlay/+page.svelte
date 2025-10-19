@@ -7,7 +7,60 @@
 	let isDogAwake = $state(false); // Track if dog is currently awake/barking
 	let audioEnabled = $state(true); // Track if audio is enabled
 
-	const ANIMATION_DELAY = (3 / 7) * 1000; // Animation timing (~571ms)
+	/**
+	 * Animation configuration with frame counts and FPS
+	 * Duration in ms = (frames / fps) * 1000
+	 */
+	const ANIMATIONS = {
+		waking_up: { frames: 3, fps: 7, duration: (3 / 7) * 1000 },
+		barking_talking: { frames: 3, fps: 7, duration: (3 / 7) * 1000 },
+		to_sleep: { frames: 3, fps: 7, duration: (3 / 7) * 1000 },
+		sleeping: { frames: 10, fps: 7, duration: (10 / 7) * 1000 },
+		default_stance: { frames: 3, fps: 7, duration: (3 / 7) * 1000 }
+	};
+
+	/**
+	 * Play an animation sequence with automatic transitions
+	 * @param {Array} sequence - Array of animation objects: [{ state: 'dubs_waking_up', loop: false }, ...]
+	 * @param {Function} onComplete - Optional callback when sequence completes
+	 * @param {Function} onStepComplete - Optional callback when each step completes (receives state name)
+	 */
+	function playAnimationSequence(sequence, onComplete = null, onStepComplete = null) {
+		// Clear any pending animations
+		if (animationTimeout) clearTimeout(animationTimeout);
+
+		let currentStep = 0;
+
+		function playNextStep() {
+			if (currentStep >= sequence.length) {
+				// Sequence complete
+				if (onComplete) onComplete();
+				return;
+			}
+
+			const step = sequence[currentStep];
+			const animKey = step.state.replace('dubs_', '');
+			const animConfig = ANIMATIONS[animKey];
+
+			// Set the animation state
+			dubsStore.setState(step.state);
+
+			// If this is a looping animation, don't advance
+			if (step.loop) {
+				if (onStepComplete) onStepComplete(step.state);
+				return;
+			}
+
+			// Schedule next step after animation completes
+			animationTimeout = setTimeout(() => {
+				if (onStepComplete) onStepComplete(step.state);
+				currentStep++;
+				playNextStep();
+			}, animConfig?.duration || 571);
+		}
+
+		playNextStep();
+	}
 
 	/**
 	 * Handle distraction alert from main process
@@ -16,25 +69,28 @@
 	function handleDistractionAlert(alertPackage) {
 		console.log('🚨 Distraction alert received:', alertPackage);
 
-		// Clear any pending animations
-		if (animationTimeout) clearTimeout(animationTimeout);
-
 		// Store the AI-generated message
 		currentMessage = alertPackage.message || 'Hey! Get back to work! 🎯';
 
-		// Play waking up animation
-		dubsStore.setState('dubs_waking_up');
+		// Play animation sequence: waking_up → barking_talking (loop)
+		playAnimationSequence(
+			[
+				{ state: 'dubs_waking_up', loop: false },
+				{ state: 'dubs_barking_talking', loop: true }
+			],
+			null,
+			(completedState) => {
+				// When waking_up completes, mark dog as awake and play audio
+				if (completedState === 'dubs_waking_up') {
+					isDogAwake = true;
 
-		// Wait for animation to complete, then show barking state
-		animationTimeout = setTimeout(() => {
-			dubsStore.setState('dubs_heavy_bark');
-			isDogAwake = true; // Mark dog as awake when it starts barking
-
-			// Play audio if available
-			if (alertPackage.audioData) {
-				playAudio(alertPackage.audioData);
+					// Play audio if available
+					if (alertPackage.audioData) {
+						playAudio(alertPackage.audioData);
+					}
+				}
 			}
-		}, ANIMATION_DELAY);
+		);
 	}
 
 	/**
@@ -75,8 +131,6 @@
 	 */
 	function handleUserRefocused(refocusData) {
 		console.log('😴 User refocused, resetting dog state:', refocusData);
-		// Clear any pending animations
-		if (animationTimeout) clearTimeout(animationTimeout);
 
 		// Clear the current message
 		currentMessage = '';
@@ -84,14 +138,20 @@
 		// Only play sleep animation if dog was actually awake
 		if (isDogAwake) {
 			console.log('🐕 Dog was awake, playing sleep animation');
-			// Play going to sleep animation
-			dubsStore.setState('dubs_to_sleep');
-
-			// Wait for animation to complete, then show sleeping state
-			animationTimeout = setTimeout(() => {
-				dubsStore.setState('dubs_sleeping');
-				isDogAwake = false; // Mark dog as sleeping
-			}, ANIMATION_DELAY);
+			// Play animation sequence: to_sleep → sleeping (loop)
+			playAnimationSequence(
+				[
+					{ state: 'dubs_to_sleep', loop: false },
+					{ state: 'dubs_sleeping', loop: true }
+				],
+				null,
+				(completedState) => {
+					// When to_sleep completes, mark dog as sleeping
+					if (completedState === 'dubs_to_sleep') {
+						isDogAwake = false;
+					}
+				}
+			);
 		} else {
 			console.log('😴 Dog was already sleeping, no animation needed');
 			// Dog was already sleeping, just ensure it stays sleeping
@@ -108,20 +168,25 @@
 
 		if (!isActive) {
 			// Session stopped - put Dubs to sleep
-			if (animationTimeout) clearTimeout(animationTimeout);
+			currentMessage = '';
 
 			// Only play sleep animation if dog was awake
 			if (isDogAwake) {
-				dubsStore.setState('dubs_to_sleep');
-				animationTimeout = setTimeout(() => {
-					dubsStore.setState('dubs_sleeping');
-					isDogAwake = false;
-				}, ANIMATION_DELAY);
+				playAnimationSequence(
+					[
+						{ state: 'dubs_to_sleep', loop: false },
+						{ state: 'dubs_sleeping', loop: true }
+					],
+					null,
+					(completedState) => {
+						if (completedState === 'dubs_to_sleep') {
+							isDogAwake = false;
+						}
+					}
+				);
 			} else {
 				dubsStore.setState('dubs_sleeping');
 			}
-
-			currentMessage = '';
 		}
 	});
 
