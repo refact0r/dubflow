@@ -5,7 +5,7 @@
 	let animationTimeout = null;
 	let currentMessage = $state('');
 
-	const ANIMATION_DELAY = (3 / 7) * 1200; // Animation timing (~571ms)
+	const ANIMATION_DELAY = (3 / 7) * 1000; // Animation timing (~571ms)
 
 	/**
 	 * Handle distraction alert from main process
