@@ -4,7 +4,10 @@
 
 	let previousProductiveState = $state(true);
 	let stateTimeout = null;
+	let sleepTimeout = null;
 	let lastFocusState = $state(null); // Track last state to prevent duplicates
+	
+	const ANIMATION_DELAY = (4 / 7) * 1000; // Exactly 4/7 seconds in milliseconds (~571ms)
 
 	/**
 	 * Play voice notification using ElevenLabs
@@ -49,12 +52,13 @@
 		if (isActive && previousProductiveState !== isProductive) {
 			// Clear all pending timeouts
 			if (stateTimeout) clearTimeout(stateTimeout);
+			if (sleepTimeout) clearTimeout(sleepTimeout);
 
 			if (!isProductive) {
-				// User got distracted
+				// User got distracted - play waking up animation
 				dubsStore.setState('dubs_waking_up');
 
-				// Transition to alert/barking after waking animation
+				// Wait exactly 4/7 seconds for animation to complete
 				stateTimeout = setTimeout(() => {
 					dubsStore.setState('dubs_light_bark');
 
@@ -66,16 +70,22 @@
 							playVoiceNotification();
 						}
 					}, 5000);
-				}, 2000);
+				}, ANIMATION_DELAY);
 			} else {
-				// User returned to focus - just play the sleeping animation once
-				dubsStore.setState('dubs_sleeping');
+				// User returned to focus - play going to sleep animation
+				dubsStore.setState('dubs_to_sleep');
+				
+				// Wait exactly 4/7 seconds for animation to complete
+				sleepTimeout = setTimeout(() => {
+					dubsStore.setState('dubs_sleeping');
+				}, ANIMATION_DELAY);
 			}
 
 			previousProductiveState = isProductive;
 		} else if (!isActive) {
 			// No active session, keep Dubs sleeping
 			if (stateTimeout) clearTimeout(stateTimeout);
+			if (sleepTimeout) clearTimeout(sleepTimeout);
 			dubsStore.setState('dubs_sleeping');
 		}
 	});
@@ -98,20 +108,32 @@
 			lastFocusState = data.focused;
 
 			if (data.focused) {
-				console.log('✅ User FOCUSED - Dubs sleeping');
+				console.log('✅ User FOCUSED - Dubs going to sleep');
 				// Clear any pending timeouts
 				if (stateTimeout) clearTimeout(stateTimeout);
+				if (sleepTimeout) clearTimeout(sleepTimeout);
 				
-				// Just set to sleeping directly - no animation, no timeout
-				dubsStore.setState('dubs_sleeping');
+				// Play going to sleep animation
+				dubsStore.setState('dubs_to_sleep');
+				
+				// Wait exactly 4/7 seconds for animation to complete
+				sleepTimeout = setTimeout(() => {
+					dubsStore.setState('dubs_sleeping');
+				}, ANIMATION_DELAY);
 			} else {
-				console.log('⚠️ User UNFOCUSED - Dubs barking');
+				console.log('⚠️ User UNFOCUSED - Dubs waking up and barking');
 				// Clear any pending timeouts
 				if (stateTimeout) clearTimeout(stateTimeout);
+				if (sleepTimeout) clearTimeout(sleepTimeout);
 				
-				// Set to barking and play voice
-				dubsStore.setState('dubs_heavy_bark');
-				playVoiceNotification();
+				// Play waking up animation first
+				dubsStore.setState('dubs_waking_up');
+				
+				// Wait exactly 4/7 seconds for animation to complete
+				stateTimeout = setTimeout(() => {
+					dubsStore.setState('dubs_heavy_bark');
+					playVoiceNotification();
+				}, ANIMATION_DELAY);
 			}
 		});
 
@@ -120,6 +142,7 @@
 		// Clean up on unmount
 		return () => {
 			if (stateTimeout) clearTimeout(stateTimeout);
+			if (sleepTimeout) clearTimeout(sleepTimeout);
 		};
 	});
 </script>
