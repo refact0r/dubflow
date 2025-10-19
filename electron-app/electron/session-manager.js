@@ -15,6 +15,7 @@ export class SessionManager {
 		};
 		this.windows = new Set(); // Store window references
 		this.pythonIPC = null;
+		this.distractionManager = null; // Reference to distraction manager
 	}
 
 	/**
@@ -23,6 +24,14 @@ export class SessionManager {
 	 */
 	setPythonIPC(pythonIPC) {
 		this.pythonIPC = pythonIPC;
+	}
+
+	/**
+	 * Set the distraction manager reference
+	 * @param {DistractionManager} distractionManager - Distraction manager instance
+	 */
+	setDistractionManager(distractionManager) {
+		this.distractionManager = distractionManager;
 	}
 
 	/**
@@ -76,7 +85,14 @@ export class SessionManager {
 			distractionCount: 0
 		};
 
+		console.log('✅ Session state updated:', this.state);
+
 		this.broadcast('session-started', this.state);
+
+		// Reset distraction manager state for new session
+		if (this.distractionManager) {
+			this.distractionManager.resetDistractionState();
+		}
 
 		// Notify Python IPC about session start
 		if (this.pythonIPC && this.pythonIPC.isConnected) {
@@ -99,6 +115,11 @@ export class SessionManager {
 		this.state.isActive = false;
 
 		this.broadcast('session-stopped', this.state);
+
+		// Reset distraction manager state when session ends
+		if (this.distractionManager) {
+			this.distractionManager.resetDistractionState();
+		}
 
 		// Notify Python IPC about session stop
 		if (this.pythonIPC && this.pythonIPC.isConnected) {

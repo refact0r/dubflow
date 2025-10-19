@@ -154,8 +154,9 @@ const initializeServices = () => {
 	pythonIPC = new PythonIPCInterface();
 	pythonIPC.connect();
 
-	// Connect session manager to Python IPC
+	// Connect session manager to Python IPC and distraction manager
 	sessionManager.setPythonIPC(pythonIPC);
+	sessionManager.setDistractionManager(distractionManager);
 
 	// Initialize AI/Notification Services
 	elevenLabsService = new ElevenLabsService();
@@ -206,6 +207,7 @@ app.on('ready', () => {
 	initializeServices();
 	createDashboardWindow();
 	createOverlayWindow();
+	console.log("WINDOW TRACKING STARTING!!");
 	windowTracker.start();
 });
 

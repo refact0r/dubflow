@@ -35,8 +35,8 @@ export class DistractionManager extends EventEmitter {
 		this.lastTriggerSource = null;
 
 		// Configuration
-		this.DISTRACTION_THRESHOLD = 10000; // 10 seconds in milliseconds
-		this.CHECK_INTERVAL = 1000; // Check every second
+		this.DISTRACTION_THRESHOLD = 5000; // 10 seconds in milliseconds
+		this.CHECK_INTERVAL = 500; // Check every 500 milliseconds
 
 		// Registered windows for broadcasting
 		this.windows = new Set();
@@ -69,10 +69,21 @@ export class DistractionManager extends EventEmitter {
 	updateWindowState(windowInfo) {
 		if (!windowInfo) return;
 
+		console.log('🪟 Window state updated:', {
+			appName: windowInfo.appName,
+			isProductive: windowInfo.isProductive,
+			sessionActive: this.sessionManager.isSessionActive()
+		});
+
 		this.currentWindowInfo = windowInfo;
+		const wasWindowDistracted = this.isWindowDistracted;
 		this.isWindowDistracted = !windowInfo.isProductive;
 
-		if (this.isWindowDistracted) {
+		// If user refocused (was distracted, now productive), immediately handle refocus
+		if (wasWindowDistracted && !this.isWindowDistracted) {
+			console.log('🔄 Window refocus detected - immediately stopping any distraction flow');
+			this.handleImmediateRefocus('window_tracker');
+		} else if (this.isWindowDistracted) {
 			this.lastTriggerSource = 'window_tracker';
 		}
 
@@ -84,9 +95,14 @@ export class DistractionManager extends EventEmitter {
 	 * @param {boolean} isFocused - Whether user is focused (eyes on screen)
 	 */
 	updateEyeState(isFocused) {
+		const wasEyeDistracted = this.isEyeDistracted;
 		this.isEyeDistracted = !isFocused;
 
-		if (this.isEyeDistracted) {
+		// If user refocused (was distracted, now focused), immediately handle refocus
+		if (wasEyeDistracted && !this.isEyeDistracted) {
+			console.log('🔄 Eye refocus detected - immediately stopping any distraction flow');
+			this.handleImmediateRefocus('eye_tracker');
+		} else if (this.isEyeDistracted) {
 			this.lastTriggerSource = 'eye_tracker';
 		}
 
@@ -94,12 +110,51 @@ export class DistractionManager extends EventEmitter {
 	}
 
 	/**
+	 * Handle immediate refocus - aggressively stop any ongoing distraction flow
+	 * @param {string} source - Source of the refocus (window_tracker or eye_tracker)
+	 */
+	handleImmediateRefocus(source) {
+		console.log(`🚨 IMMEDIATE REFOCUS from ${source} - stopping all distraction flows`);
+		
+		// Stop any ongoing timer
+		if (this.distractionStartTime) {
+			console.log('⏹️ Stopping distraction timer');
+			this.distractionStartTime = null;
+		}
+		
+		// Clear any check intervals
+		if (this.checkInterval) {
+			clearInterval(this.checkInterval);
+			this.checkInterval = null;
+		}
+		
+		// Reset distraction states
+		this.isWindowDistracted = false;
+		this.isEyeDistracted = false;
+		this.lastTriggerSource = null;
+		
+		// Immediately broadcast refocus to stop dog animation
+		this.broadcastRefocus();
+		
+		console.log('✅ Immediate refocus handled - dog animation should stop');
+	}
+
+	/**
 	 * Check overall distraction state (OR logic)
 	 * If either detector reports distraction, user is considered distracted
 	 */
 	checkDistractionState() {
+		const sessionActive = this.sessionManager.isSessionActive();
+		console.log('🔍 Checking distraction state:', {
+			sessionActive,
+			isWindowDistracted: this.isWindowDistracted,
+			isEyeDistracted: this.isEyeDistracted,
+			hasTimer: !!this.distractionStartTime
+		});
+
 		// Only track distractions if a session is active
-		if (!this.sessionManager.isSessionActive()) {
+		if (!sessionActive) {
+			console.log('⏸️ No active session, resetting timer');
 			this.resetTimer();
 			return;
 		}
@@ -108,10 +163,13 @@ export class DistractionManager extends EventEmitter {
 
 		if (isDistracted && !this.distractionStartTime) {
 			// Start distraction timer
+			console.log('🚨 Starting distraction timer!');
 			this.startTimer();
 		} else if (!isDistracted && this.distractionStartTime) {
 			// User is focused again, reset timer (hard reset)
+			console.log('✅ User refocused, resetting timer');
 			this.resetTimer();
+			this.broadcastRefocus();
 		}
 	}
 
@@ -124,7 +182,11 @@ export class DistractionManager extends EventEmitter {
 
 		// Start checking if threshold is reached
 		this.checkInterval = setInterval(() => {
-			this.checkThreshold();
+			console.log("INITIATING A THRESHOLD CHECK!");
+			if(this.checkThreshold() === "exitThis" || 
+				this.checkThreshold === "handlingDistraction") {
+				clearInterval(this.checkInterval);
+			}
 		}, this.CHECK_INTERVAL);
 	}
 
@@ -134,6 +196,9 @@ export class DistractionManager extends EventEmitter {
 	resetTimer() {
 		if (this.distractionStartTime) {
 			console.log('✅ User refocused, timer reset');
+			
+			// Broadcast refocus event to reset dog's state
+			this.broadcastRefocus();
 		}
 
 		this.distractionStartTime = null;
@@ -149,16 +214,28 @@ export class DistractionManager extends EventEmitter {
 	 * Check if distraction threshold has been reached
 	 */
 	checkThreshold() {
-		if (!this.distractionStartTime) return;
+		if (!this.distractionStartTime) return "exitThis";
+
+		// Safety check: if user is no longer distracted, stop immediately
+		const isCurrentlyDistracted = this.isWindowDistracted || this.isEyeDistracted;
+		if (!isCurrentlyDistracted) {
+			console.log('🛑 User refocused during countdown - stopping threshold check');
+			this.distractionStartTime = null;
+			return "exitThis";
+		}
 
 		const elapsed = Date.now() - this.distractionStartTime;
 
 		if (elapsed >= this.DISTRACTION_THRESHOLD) {
 			console.log('🔥 Distraction threshold reached! Triggering alert...');
 			this.handleDistractionThreshold();
+			return "handlingDistraction";
 		}
+		return "continuing";
 	}
-
+	async sleep(ms) {
+		return new Promise(resolve => setTimeout(resolve, ms));
+	}
 	/**
 	 * Main orchestration method when distraction threshold is reached
 	 * Executes the full alert flow
@@ -174,8 +251,11 @@ export class DistractionManager extends EventEmitter {
 			let rekognitionData = null;
 			try {
 				console.log('📸 Requesting Rekognition data from Python...');
-				rekognitionData = await this.pythonIPC.requestData(5000);
-				console.log('✅ Rekognition data received');
+				this.pythonIPC.requestData();
+
+				// Briefly sleep, allow AWS to work.
+				this.sleep(500);
+				rekognitionData = this.pythonIPC.globalBedrockString;
 			} catch (error) {
 				console.warn('⚠️  Failed to get Rekognition data:', error.message);
 				// Continue without rekognition data
@@ -299,6 +379,72 @@ export class DistractionManager extends EventEmitter {
 			} else {
 				window.webContents.send('distraction-alert', alertPackage);
 			}
+		}
+	}
+
+	/**
+	 * Broadcast refocus event to reset dog's state
+	 */
+	broadcastRefocus() {
+		console.log('😴 Broadcasting refocus event to reset dog state...');
+
+		// Clean up destroyed windows
+		for (const window of this.windows) {
+			if (window.isDestroyed()) {
+				this.windows.delete(window);
+			} else {
+				window.webContents.send('user-refocused', {
+					timestamp: Date.now(),
+					message: 'User is back to being focused!'
+				});
+			}
+		}
+	}
+
+	/**
+	 * Emergency stop - immediately stop all distraction flows and reset dog
+	 * Can be called from frontend or internally
+	 */
+	emergencyStop() {
+		console.log('🚨 EMERGENCY STOP - immediately stopping all distraction flows');
+		
+		// Stop any ongoing timer
+		if (this.distractionStartTime) {
+			this.distractionStartTime = null;
+		}
+		
+		// Clear any check intervals
+		if (this.checkInterval) {
+			clearInterval(this.checkInterval);
+			this.checkInterval = null;
+		}
+		
+		// Reset all distraction states
+		this.isWindowDistracted = false;
+		this.isEyeDistracted = false;
+		this.lastTriggerSource = null;
+		this.currentWindowInfo = null;
+		
+		// Immediately broadcast refocus to stop dog animation
+		this.broadcastRefocus();
+		
+		console.log('✅ Emergency stop complete - dog should be sleeping');
+	}
+
+	/**
+	 * Reset distraction state (called when session starts/ends)
+	 */
+	resetDistractionState() {
+		console.log('🔄 Resetting distraction state');
+		this.isWindowDistracted = false;
+		this.isEyeDistracted = false;
+		this.distractionStartTime = null;
+		this.lastTriggerSource = null;
+		this.currentWindowInfo = null;
+		
+		if (this.checkInterval) {
+			clearInterval(this.checkInterval);
+			this.checkInterval = null;
 		}
 	}
 

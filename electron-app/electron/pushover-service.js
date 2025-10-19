@@ -7,8 +7,8 @@ import https from 'https';
 
 class PushoverService {
 	constructor() {
-		this.token = process.env.PUSHOVER_TOKEN;
-		this.user = process.env.PUSHOVER_USER;
+		this.token = process.env.VITE_PUSHOVER_TOKEN;
+		this.user = process.env.VITE_PUSHOVER_USER;
 		this.isEnabled = true;
 
 		if (!this.token || !this.user) {

@@ -6,6 +6,8 @@
 
 import net from 'net';
 import { EventEmitter } from 'events';
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import ElevenLabsService from './elevenlabs-service.js';
 
 class PythonIPCInterface extends EventEmitter {
 	constructor() {
@@ -15,9 +17,12 @@ class PythonIPCInterface extends EventEmitter {
 		this.port = 5555;
 		this.host = 'localhost';
 		this.buffer = '';
+        this.elevenLabsService = new ElevenLabsService();
+        this.globalBedrockString = ""
 
 		console.log('🐍 Python IPC Interface initialized');
 	}
+
 
 	/**
 	 * Connect to Python vision system
@@ -63,38 +68,32 @@ class PythonIPCInterface extends EventEmitter {
 						// Parse JSON message
 						const eventData = JSON.parse(line);
 
-						// IF THE DATA IS AWS-REKOG RELATED
-						if (eventData.hasOwnProperty('scene_analysis')) {
-							console.log('📊 AWS Rekognition Data Received');
-							// Emit as rekognition data for requestData() to handle
-							this.emit('rekognition_data', eventData);
-						}
+                        // IF THE DATA IS AWS-REKOG RELATED
+                        if(eventData.hasOwnProperty("scene_analysis")) {
+                            console.log("AWS Rekognition Detects...");
+                            console.log(eventData.scene_analysis.labels);
 
-						// IF THE DATA IS A TRIGGER!!
-						else if (eventData.event) {
-							// Emit events based on the event type
-							if (eventData.event === 'user_unfocused') {
-								console.log('User UNFOCUSED! LOCK BACK IN!!');
-								// Emit distraction detected event
-								this.emit('distraction_detected', eventData);
-								this.emit('focus_update', {
-									focused: false,
-									...eventData
-								});
-							} else if (eventData.event === 'user_focused') {
-								console.log('User FOCUSED! GOOD JOB!!');
-								// Emit focus restored event
-								this.emit('focus_restored', eventData);
-								this.emit('focus_update', {
-									focused: true,
-									...eventData
-								});
-							}
+                            this.globalBedrockString = JSON.stringify(eventData.scene_analysis);
+                        }
 
-							console.log('TIME: ', eventData.timestamp);
-						}
-						// EVENT DATA SCHEMA:
-						/*
+                        // IF THE DATA IS A TRIGGER!!
+                        else {
+                            // Emit events based on the event type
+                            if (eventData.event === 'user_unfocused') {
+                                console.log('User UNFOCUSED! LOCK BACK IN!!');
+                                // Emit focus update event
+                                this.emit('focus_update', { focused: false, ...eventData });
+                                
+                            } else if (eventData.event === 'user_focused') {
+                                console.log('User FOCUSED! GOOD JOB!!');
+                                // Emit focus update event
+                                this.emit('focus_update', { focused: true, ...eventData });
+                            }
+                            
+                            console.log('TIME: ', eventData.timestamp)
+                        }
+                        // EVENT DATA SCHEMA:
+                        /*
                         event = {
                             "timestamp": timestamp, HIGHLY IMPORTANT this is your timestamp
                             "event": event_type,
@@ -138,20 +137,20 @@ class PythonIPCInterface extends EventEmitter {
 		});
 	}
 
-	/**
-	 * Display all AWS Rekognition context in a clever, readable manner.
-	 */
-	printRekognitionContext(rekognitionData) {
-		try {
-			// Try to parse if it's valid JSON
-			const parsed = JSON.parse(rekognitionData);
-			console.log('🔍 Rekognition Data:', parsed);
-		} catch (error) {
-			// If it's a Python dict string, just log it as-is
-			// (Python dicts use single quotes and aren't valid JSON)
-			console.log('🔍 Rekognition Data (raw):', rekognitionData);
-		}
-	}
+    /**
+     * Display all AWS Rekognition context in a clever, readable manner.
+     */
+    printRekognitionContext(rekognitionData) {
+        try {
+            // Try to parse if it's valid JSON
+            const parsed = JSON.parse(rekognitionData);
+            console.log('🔍 Rekognition Data:', parsed);
+        } catch (error) {
+            // If it's a Python dict string, just log it as-is
+            // (Python dicts use single quotes and aren't valid JSON)
+            console.log('🔍 Rekognition Data (raw):', rekognitionData);
+        }
+    }
 
 	/**
 	 * Handle disconnection
@@ -177,46 +176,47 @@ class PythonIPCInterface extends EventEmitter {
 	 * @param {number} timeout - Timeout in milliseconds (default 5000)
 	 * @returns {Promise<Object>} Rekognition data from Python
 	 */
-	async requestData(timeout = 5000) {
-		return new Promise((resolve, reject) => {
-			if (!this.isConnected) {
+	async requestData() {
+		return new Promise(async (resolve, reject) => {
+			if (!this.isConnected || !this.socket) {
 				reject(new Error('Not connected to Python system'));
 				return;
 			}
 
-			// Set up one-time listener for the response
-			const responseHandler = (data) => {
-				// Check if this is a rekognition data response
-				if (data.scene_analysis || data.face_analysis) {
-					this.removeListener('rekognition_data', responseHandler);
-					clearTimeout(timeoutId);
-					resolve(data);
-				}
-			};
+            const requestSocket = this.socket;
+			// Connect to Python system
+            const request = {
+                type: 'get_data',
+                timestamp: new Date().toISOString()
+            };
 
-			// Add temporary event for rekognition data responses
-			this.on('rekognition_data', responseHandler);
-
-			// Set up timeout
-			const timeoutId = setTimeout(() => {
-				this.removeListener('rekognition_data', responseHandler);
-				reject(new Error('Rekognition data request timed out'));
-			}, timeout);
-
-			// Send request to Python
-			const request = {
-				type: 'get_data',
-				timestamp: new Date().toISOString()
-			};
-
-			try {
-				this.socket.write(JSON.stringify(request) + '\n');
-			} catch (error) {
-				this.removeListener('rekognition_data', responseHandler);
-				clearTimeout(timeoutId);
-				reject(error);
-			}
+			requestSocket.write(JSON.stringify(request));
 		});
+	}
+
+	/**
+	 * Send message to Python system
+	 * @param {string} type - Message type
+	 * @param {Object} data - Data to send
+	 */
+	send(type, data) {
+		if (!this.isConnected || !this.socket) {
+			console.warn('⚠️ Cannot send message: not connected to Python system');
+			return;
+		}
+
+		const message = {
+			type,
+			timestamp: Date.now(),
+			...data
+		};
+
+		try {
+			this.socket.write(JSON.stringify(message) + '\n');
+			console.log(`📤 Sent ${type} to Python:`, data);
+		} catch (error) {
+			console.error('❌ Failed to send message to Python:', error);
+		}
 	}
 
 	/**

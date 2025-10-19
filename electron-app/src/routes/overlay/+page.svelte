@@ -5,7 +5,7 @@
 	let animationTimeout = null;
 	let currentMessage = $state('');
 
-	const ANIMATION_DELAY = (3 / 7) * 1000; // Animation timing (~571ms)
+	const ANIMATION_DELAY = (3 / 7) * 1200; // Animation timing (~571ms)
 
 	/**
 	 * Handle distraction alert from main process
@@ -61,6 +61,28 @@
 	}
 
 	/**
+	 * Handle user refocus event - reset dog to sleep state
+	 * @param {Object} refocusData - Refocus event data
+	 */
+	function handleUserRefocused(refocusData) {
+		console.log('😴 User refocused, resetting dog state:', refocusData);
+		dubsStore.setState('dubs_to_sleep');
+		// Clear any pending animations
+		if (animationTimeout) clearTimeout(animationTimeout);
+
+		// Clear the current message
+		currentMessage = '';
+
+		// Play going to sleep animation
+		dubsStore.setState('dubs_to_sleep');
+
+		// Wait for animation to complete, then show sleeping state
+		animationTimeout = setTimeout(() => {
+			dubsStore.setState('dubs_sleeping');
+		}, ANIMATION_DELAY);
+	}
+
+	/**
 	 * Handle session state changes
 	 * When session stops, put Dubs to sleep
 	 */
@@ -89,6 +111,14 @@
 			console.log('✅ Listening for distraction alerts');
 		} else {
 			console.error('❌ electronAPI.onDistractionAlert not available');
+		}
+
+		// Listen for user refocus events from main process
+		if (window.electronAPI?.onUserRefocused) {
+			window.electronAPI.onUserRefocused(handleUserRefocused);
+			console.log('✅ Listening for user refocus events');
+		} else {
+			console.error('❌ electronAPI.onUserRefocused not available');
 		}
 
 		// Initialize Dubs as sleeping
