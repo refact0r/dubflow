@@ -68,7 +68,6 @@
 	 */
 	function handleUserRefocused(refocusData) {
 		console.log('😴 User refocused, resetting dog state:', refocusData);
-		
 		// Clear any pending animations
 		if (animationTimeout) clearTimeout(animationTimeout);
 
