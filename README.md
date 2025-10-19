@@ -1,0 +1,45 @@
+# Dubflow
+
+A focus companion app that helps you stay productive through AI-driven feedback and real-time distraction detection. Meet Dubs, your animated desktop companion that monitors your focus and keeps you on task.
+
+<img src="./electron-app/static/dubs/dubs_default_stance.gif" alt="Dubs Default Stance" width="200" height="200" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
+
+## Features
+
+- **Focus Tracking** - Webcam-based attention monitoring using OpenCV and AWS Rekognition
+- **Activity Monitoring** - Detects productive vs. distracting windows and applications
+- **Animated Overlay** - Dubs reacts to your focus behavior with contextual animations
+- **Pomodoro Sessions** - Timed focus sessions with progress tracking and rewards
+- **Analytics Dashboard** - Visualize focus patterns, session summaries, and productivity metrics
+- **AI Speech Interactions** - Contextual, motivational feedback powered by AI
+
+## Tech Stack
+
+### Frontend
+
+- Electron + SvelteKit (Svelte 5)
+
+### Backend
+
+- Python with OpenCV for face/eye tracking
+- AWS Rekognition for scene analysis
+- AWS Bedrock for AI-generated speech
+- ElevenLabs for speech synthesis
+- Pushover for mobile notifications
+- TCP socket server for real-time communication
+- Node `get-windows` for active window detection
+
+## Project Structure
+
+```
+/electron-app/       # Main Electron + SvelteKit application
+  /electron/         # Electron core logic (main process, IPC, window tracking)
+  /src/              # SvelteKit frontend (routes, components, stores)
+  /static/           # Dubs animation GIFs and assets
+
+/local/              # Python vision system (focus detection, webcam monitoring)
+```
+
+---
+
+Built for DubHacks 2025
