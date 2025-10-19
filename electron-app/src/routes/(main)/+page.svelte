@@ -18,6 +18,38 @@
 	}
 
 	/**
+	 * Calculate current focus score as percentage of time spent focused
+	 * @returns {number} Focus score percentage (0-100)
+	 */
+	function getFocusScore() {
+		if (!sessionStore.isActive || sessionStore.elapsedTime === 0) {
+			return 100; // Default to 100% at start
+		}
+
+		const history = sessionStore.focusStateHistory;
+		if (!history || history.length === 0) {
+			return 100;
+		}
+
+		const currentElapsed = sessionStore.elapsedTime;
+		let focusedTime = 0;
+
+		for (let i = 0; i < history.length; i++) {
+			const event = history[i];
+			const nextEvent = history[i + 1];
+
+			if (event.state === 'focused') {
+				const segmentStart = event.elapsedTime ?? 0;
+				const segmentEnd = nextEvent ? (nextEvent.elapsedTime ?? 0) : currentElapsed;
+
+				focusedTime += Math.max(0, segmentEnd - segmentStart);
+			}
+		}
+
+		return Math.round((focusedTime / currentElapsed) * 100);
+	}
+
+	/**
 	 * Convert focus state history into timeline segments for visualization
 	 * Uses elapsedTime from events which accounts for pauses
 	 * @returns {Array} Array of segments with {state, widthPercent}
@@ -208,7 +240,13 @@
 	</div>
 
 	<div class="right">
-		<h2 class="task-name">{sessionStore.taskName || 'No active task'}</h2>
+		<div class="session-header">
+			<h2 class="task-name">{sessionStore.taskName || 'No active task'}</h2>
+			<div class="focus-score-display">
+				<span class="score-label">Focus</span>
+				<span class="score-value">{sessionStore.isActive ? getFocusScore() : '--'}%</span>
+			</div>
+		</div>
 		<div class="timeline">
 			<div class="bar">
 				{#if sessionStore.isActive && sessionStore.duration > 0}
@@ -391,10 +429,37 @@
 		gap: 1rem;
 	}
 
+	.session-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		margin: 1rem 0;
+		gap: 2rem;
+	}
+
 	.task-name {
-		margin: 1rem 0 1rem 0;
+		margin: 0;
 		font-size: 3rem;
 		font-family: 'PPMondwest', sans-serif;
+	}
+
+	.focus-score-display {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.score-label {
+		font-size: 1rem;
+		color: var(--txt-2);
+	}
+
+	.score-value {
+		font-size: 2rem;
+		font-family: 'PPMondwest', sans-serif;
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+		color: var(--txt-1);
 	}
 
 	.time {
