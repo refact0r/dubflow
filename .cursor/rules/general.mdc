@@ -5,3 +5,5 @@ alwaysApply: true
 # General rules
 
 Refer to the /docs/PROJECT.md file for the project context and structure.
+
+Write clean, minimal, modular code.

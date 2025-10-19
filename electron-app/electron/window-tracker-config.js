@@ -5,7 +5,7 @@
  * This file can be edited to match your personal workflow.
  */
 
-export const focusConfig = {
+export const windowTrackerConfig = {
 	/**
 	 * Apps considered productive for focused work
 	 * Add any apps you use for work/study
@@ -104,8 +104,8 @@ export const focusConfig = {
 		urlOverridesApp: true,
 
 		// Polling interval for active window detection (milliseconds)
-		pollInterval: 2000
+		pollInterval: 500
 	}
 };
 
-export default focusConfig;
+export default windowTrackerConfig;
