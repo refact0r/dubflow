@@ -12,6 +12,7 @@
 
 	let currentTime = $state(1650); // 27.5 minutes
 	let taskName = $state('Deep work - Design mockups');
+	let taskNameInput = $state('Finishing an english essay...');
 
 	function formatTime(seconds) {
 		const mins = Math.floor(seconds / 60);
@@ -20,7 +21,6 @@
 	}
 </script>
 
-<<<<<<< HEAD
 <div class="dashboard">
 	<header>
 		<h1>🐕 LockInDubs</h1>
@@ -125,34 +125,6 @@
 			</div>
 		</section>
 	</main>
-=======
-<div class="container">
-	<div class="timer">
-		<h1>{taskName}</h1>
-		<div class="time">
-			{formatTime(currentTime)} / {formatTime(sessionDuration)}
-		</div>
-		<div class="buttons">
-			<button>Pause</button>
-			<button>End</button>
-		</div>
-	</div>
-
-	<div class="timeline">
-		<h2>Timeline</h2>
-		<div class="bar">
-			{#each events as event}
-				<div
-					class="segment {event.type}"
-					style="left: {(event.start / sessionDuration) * 100}%; width: {(event.duration /
-						sessionDuration) *
-						100}%;"
-				></div>
-			{/each}
-			<div class="indicator" style="left: {(currentTime / sessionDuration) * 100}%;"></div>
-		</div>
-	</div>
->>>>>>> fe257f30c1380b79efc8aff14d24303137724160
 </div>
 
 <style>
@@ -197,7 +169,6 @@
 		background: var(--bg-2);
 	}
 
-<<<<<<< HEAD
 	.btn-danger:hover {
 		background: #e53e3e;
 	}
@@ -219,10 +190,6 @@
 		padding: 1rem;
 		background: #f7fafc;
 		border-radius: 8px;
-=======
-	.timeline h2 {
-		font-size: 1.2rem;
->>>>>>> fe257f30c1380b79efc8aff14d24303137724160
 		margin-bottom: 1rem;
 	}
 
