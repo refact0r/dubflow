@@ -157,6 +157,9 @@
 				<button onclick={toggleOverlay} class="btn">
 					{dubsStore.overlayVisible ? 'Hide' : 'Show'} Overlay
 				</button>
+				<button onclick={() => dubsStore.emergencyStop()} class="btn btn-warning">
+					🚨 Emergency Stop
+				</button>
 				<div class="dubs-state">
 					<span>Current State:</span>
 					<span class="state-badge">{dubsStore.state}</span>
@@ -300,6 +303,15 @@
 
 	.btn-danger:hover {
 		background: #e53e3e;
+	}
+
+	.btn-warning {
+		background: #f6ad55;
+		color: white;
+	}
+
+	.btn-warning:hover {
+		background: #ed8936;
 	}
 
 	/* Activity Monitor */

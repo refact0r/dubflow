@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// Voice notifications (legacy - kept for compatibility)
 	playVoiceNotification: () => ipcRenderer.invoke('play-voice-notification'),
 
+	// Emergency stop for distraction manager
+	emergencyStopDistraction: () => ipcRenderer.send('emergency-stop-distraction'),
+
 	// Listeners for updates from main process
 	onSessionStarted: (callback) => {
 		ipcRenderer.on('session-started', (event, data) => callback(data));
@@ -29,6 +32,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// Distraction alert listener (new unified system)
 	onDistractionAlert: (callback) => {
 		ipcRenderer.on('distraction-alert', (event, alertPackage) => callback(alertPackage));
+	},
+
+	// User refocused listener
+	onUserRefocused: (callback) => {
+		ipcRenderer.on('user-refocused', (event, refocusData) => callback(refocusData));
 	},
 
 	// Active window tracking listener

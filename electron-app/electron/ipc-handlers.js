@@ -38,6 +38,13 @@ export const setupIPCHandlers = ({
 		return sessionManager.getState();
 	});
 
+	// Emergency stop for distraction manager
+	ipcMain.on('emergency-stop-distraction', () => {
+		if (distractionManager) {
+			distractionManager.emergencyStop();
+		}
+	});
+
 	// Overlay Management
 	ipcMain.on('toggle-overlay', (event, visible) => {
 		const overlayWindow = getOverlayWindow();
@@ -55,6 +62,22 @@ export const setupIPCHandlers = ({
 		const overlayWindow = getOverlayWindow();
 		if (overlayWindow && !overlayWindow.isDestroyed()) {
 			overlayWindow.webContents.send('dubs-state-change', state);
+		}
+	});
+
+	// Distraction Alert Handler
+	ipcMain.on('distraction-alert', (event, alertPackage) => {
+		const overlayWindow = getOverlayWindow();
+		if (overlayWindow && !overlayWindow.isDestroyed()) {
+			overlayWindow.webContents.send('distraction-alert', alertPackage);
+		}
+	});
+
+	// User Refocused Handler
+	ipcMain.on('user-refocused', (event, refocusData) => {
+		const overlayWindow = getOverlayWindow();
+		if (overlayWindow && !overlayWindow.isDestroyed()) {
+			overlayWindow.webContents.send('user-refocused', refocusData);
 		}
 	});
 
@@ -121,6 +144,7 @@ export const cleanupIPCHandlers = () => {
 	ipcMain.removeAllListeners('stop-session');
 	ipcMain.removeAllListeners('toggle-overlay');
 	ipcMain.removeAllListeners('set-dubs-state');
+	ipcMain.removeAllListeners('emergency-stop-distraction');
 	ipcMain.removeHandler('get-session-state');
 	ipcMain.removeHandler('play-voice-notification');
 	console.log('🧹 IPC handlers cleaned up');

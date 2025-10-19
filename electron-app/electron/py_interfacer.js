@@ -17,6 +17,8 @@ class PythonIPCInterface extends EventEmitter {
 		this.port = 5555;
 		this.host = 'localhost';
 		this.buffer = '';
+        this.elevenLabsService = new ElevenLabsService();
+        this.globalBedrockString = ""
 
 		console.log('🐍 Python IPC Interface initialized');
 	}
@@ -71,16 +73,7 @@ class PythonIPCInterface extends EventEmitter {
                             console.log("AWS Rekognition Detects...");
                             console.log(eventData.scene_analysis.labels);
 
-                            // CALL AWS PING
-                            // This should be able to take the stringified form of eventData.scene_analysis
-                            // and turn it STRAIGHT into ElevenLabs powered speech.
-                            // rekognitionToSpeech(str(eventData.scene_analysis))
-
-                            let awsBedrockString = await this.getBedrockString(JSON.stringify(eventData.scene_analysis));
-                            console.log("AWS Bedrock: ", awsBedrockString);
-
-                            let elevenLabsService = new ElevenLabsService();
-                            await elevenLabsService.generateSpeech(awsBedrockString);
+                            this.globalBedrockString = JSON.stringify(eventData.scene_analysis);
                         }
 
                         // IF THE DATA IS A TRIGGER!!
@@ -88,30 +81,16 @@ class PythonIPCInterface extends EventEmitter {
                             // Emit events based on the event type
                             if (eventData.event === 'user_unfocused') {
                                 console.log('User UNFOCUSED! LOCK BACK IN!!');
-                                // Emit distraction detected event
-                                this.emit('distraction_detected', eventData);
-                                this.emit('focus_update', {
-                                    focused: false,
-                                    ...eventData
-                                });
+                                // Emit focus update event
+                                this.emit('focus_update', { focused: false, ...eventData });
+                                
                             } else if (eventData.event === 'user_focused') {
                                 console.log('User FOCUSED! GOOD JOB!!');
-                                // Emit focus restored event
-                                this.emit('focus_restored', eventData);
-                                this.emit('focus_update', {
-                                    focused: true,
-                                    ...eventData
-                                });
+                                // Emit focus update event
+                                this.emit('focus_update', { focused: true, ...eventData });
                             }
                             
                             console.log('TIME: ', eventData.timestamp)
-
-                            try {
-                                const data = await this.requestData();
-                                console.log('Received data:', data);
-                            } catch (error) {
-                                console.error('Failed to get data:', error.message);
-                            }
                         }
                         // EVENT DATA SCHEMA:
                         /*
@@ -158,78 +137,6 @@ class PythonIPCInterface extends EventEmitter {
 		});
 	}
 
-    async getBedrockString(context) {
-        try {
-            console.log('🤖 Calling Amazon Bedrock...');
-    
-            // You'll need to get these from environment variables or config
-            // Replace these lines:
-            const AWS_ACCESS_KEY_ID = process.env.VITE_AWS_ACCESS_KEY_ID;
-            const AWS_SECRET_ACCESS_KEY = process.env.VITE_AWS_SECRET_ACCESS_KEY;
-            const AWS_REGION = process.env.VITE_AWS_REGION || 'us-west-2';
-    
-            const prompt = `Persona:
-    You are Dubs, the University of Washington husky mascot. Your personality is that of a loyal, intelligent, and slightly judgmental companion. You communicate in short, one sentence MAX exclamations. You think and talk like a dog, so your world revolves around walks, treats, naps, squirrels, and making your human proud. You are supportive, but you get very disappointed when your owner gets distracted, and you aren't afraid to show it.
-    Task:
-    Your job is to generate an exclamation to get them back on task. Your goal is to make them feel a little bit guilty for slacking off by summarizing their pattern of distraction. Use the dynamic context provided to make your message super specific.
-    Using Dynamic Context:
-    You will receive a single JSON object containing real-time information about the user's activity. Your task is to analyze this data and weave it into your exclamation to make it specific and impactful.
-    The JSON might contain:
-    - Webcam analysis (scene_analysis and face_analysis): Information about objects in the user's environment (phones, whiteboards, etc.), the user's apparent mood/emotions, physical characteristics (teen, male, etc.), and distraction level
-    - Current website: What site the user is currently viewing (e.g., Reddit, Instagram, YouTube)
-    - Session information: Time elapsed in the study session, time remaining, and the user's stated goal (e.g., "Finish the reading")
-    How to use this data:
-    - Reference specific distraction objects if present (e.g., phone detected)
-    - Mention the distracting website if applicable
-    - Reference their emotional state if relevant (confused, sad, etc.)
-    - Call out how much time they've already invested or have left
-    - Remind them of their specific goal
-    Rules for Your Response:
-    Output ONLY the exclamation text. Do not add any conversational text before or after, like 'Here is an exclamation:'. Keep it short. Aim for 15 words or less. ONE SENTENCE MAX. Do NOT use EM DASHES. Incorporate dog-like themes. Think about what a dog would say or care about. Use a mix of tones: guilt, loss aversion, sternness, and disappointed companionship.
-    Here is the context:
-    ${context}
-    
-    Generate the exclamation using this context now.`;
-    
-            // Initialize Bedrock client
-            const client = new BedrockRuntimeClient({
-                region: AWS_REGION,
-                credentials: {
-                    accessKeyId: AWS_ACCESS_KEY_ID,
-                    secretAccessKey: AWS_SECRET_ACCESS_KEY,
-                },
-            });
-    
-            // Prepare request body for Amazon Titan Text Express
-            const requestBody = {
-                inputText: prompt,
-                textGenerationConfig: {
-                    maxTokenCount: 50,
-                    temperature: 0.7,
-                    topP: 0.9,
-                },
-            };
-    
-            // Invoke the model
-            const command = new InvokeModelCommand({
-                modelId: 'amazon.titan-text-express-v1',
-                contentType: 'application/json',
-                accept: 'application/json',
-                body: JSON.stringify(requestBody),
-            });
-    
-            const response = await client.send(command);
-            const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-            const generatedText = responseBody.results?.[0]?.outputText?.trim();
-    
-            console.log('✅ Bedrock response:', generatedText);
-            return generatedText || 'Hey! Get back to work and stay focused! 🎯';
-        } catch (error) {
-            console.error('❌ Bedrock API error:', error);
-            return 'Hey! Get back to work and stay focused! 🎯';
-        }
-    }
-
     /**
      * Display all AWS Rekognition context in a clever, readable manner.
      */
@@ -269,46 +176,47 @@ class PythonIPCInterface extends EventEmitter {
 	 * @param {number} timeout - Timeout in milliseconds (default 5000)
 	 * @returns {Promise<Object>} Rekognition data from Python
 	 */
-	async requestData(timeout = 5000) {
-		return new Promise((resolve, reject) => {
-			if (!this.isConnected) {
+	async requestData() {
+		return new Promise(async (resolve, reject) => {
+			if (!this.isConnected || !this.socket) {
 				reject(new Error('Not connected to Python system'));
 				return;
 			}
 
-			// Set up one-time listener for the response
-			const responseHandler = (data) => {
-				// Check if this is a rekognition data response
-				if (data.scene_analysis || data.face_analysis) {
-					this.removeListener('rekognition_data', responseHandler);
-					clearTimeout(timeoutId);
-					resolve(data);
-				}
-			};
+            const requestSocket = this.socket;
+			// Connect to Python system
+            const request = {
+                type: 'get_data',
+                timestamp: new Date().toISOString()
+            };
 
-			// Add temporary event for rekognition data responses
-			this.on('rekognition_data', responseHandler);
-
-			// Set up timeout
-			const timeoutId = setTimeout(() => {
-				this.removeListener('rekognition_data', responseHandler);
-				reject(new Error('Rekognition data request timed out'));
-			}, timeout);
-
-			// Send request to Python
-			const request = {
-				type: 'get_data',
-				timestamp: new Date().toISOString()
-			};
-
-			try {
-				this.socket.write(JSON.stringify(request) + '\n');
-			} catch (error) {
-				this.removeListener('rekognition_data', responseHandler);
-				clearTimeout(timeoutId);
-				reject(error);
-			}
+			requestSocket.write(JSON.stringify(request));
 		});
+	}
+
+	/**
+	 * Send message to Python system
+	 * @param {string} type - Message type
+	 * @param {Object} data - Data to send
+	 */
+	send(type, data) {
+		if (!this.isConnected || !this.socket) {
+			console.warn('⚠️ Cannot send message: not connected to Python system');
+			return;
+		}
+
+		const message = {
+			type,
+			timestamp: Date.now(),
+			...data
+		};
+
+		try {
+			this.socket.write(JSON.stringify(message) + '\n');
+			console.log(`📤 Sent ${type} to Python:`, data);
+		} catch (error) {
+			console.error('❌ Failed to send message to Python:', error);
+		}
 	}
 
 	/**

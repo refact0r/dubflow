@@ -40,6 +40,18 @@ export class DubsStore {
 		}
 	}
 
+	/**
+	 * Emergency stop - immediately stop all distraction flows and reset dog
+	 */
+	emergencyStop() {
+		console.log('🚨 Emergency stop called from frontend');
+		if (window.electronAPI) {
+			window.electronAPI.emergencyStopDistraction();
+		}
+		// Also force local state to sleeping
+		this.setState('dubs_sleeping');
+	}
+
 	// Simply append .gif to the state name to get the filename
 	get spriteFile() {
 		return `dubs/${this.state}.gif`;
