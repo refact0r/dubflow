@@ -9,6 +9,9 @@ import PythonIPCInterface from './py_interfacer.js';
 import { WindowTracker } from './window-tracker.js';
 import { SessionManager } from './session-manager.js';
 import ElevenLabsService from './elevenlabs-service.js';
+import BedrockService from './bedrock-service.js';
+import PushoverService from './pushover-service.js';
+import DistractionManager from './distraction-manager.js';
 import { setupIPCHandlers, setupPythonIPCForwarding, cleanupIPCHandlers } from './ipc-handlers.js';
 
 // Load environment variables
@@ -28,10 +31,13 @@ let mainWindow = null;
 let overlayWindow = null;
 let pythonIPC = null;
 
-// Core managers
+// Core managers and services
 let windowTracker = null;
 let sessionManager = null;
 let elevenLabsService = null;
+let bedrockService = null;
+let pushoverService = null;
+let distractionManager = null;
 
 // Helper functions to get window references (for IPC handlers)
 const getMainWindow = () => mainWindow;
@@ -69,6 +75,9 @@ const createDashboardWindow = () => {
 	}
 	if (sessionManager) {
 		sessionManager.registerWindow(mainWindow);
+	}
+	if (distractionManager) {
+		distractionManager.registerWindow(mainWindow);
 	}
 };
 
@@ -121,6 +130,9 @@ const createOverlayWindow = () => {
 	if (sessionManager) {
 		sessionManager.registerWindow(overlayWindow);
 	}
+	if (distractionManager) {
+		distractionManager.registerWindow(overlayWindow);
+	}
 };
 
 /**
@@ -135,9 +147,6 @@ const initializeServices = () => {
 	// Initialize Session Manager
 	sessionManager = new SessionManager();
 
-	// Initialize ElevenLabs Service
-	elevenLabsService = new ElevenLabsService();
-
 	// Initialize Python IPC connection
 	pythonIPC = new PythonIPCInterface();
 	pythonIPC.connect();
@@ -145,20 +154,45 @@ const initializeServices = () => {
 	// Connect session manager to Python IPC
 	sessionManager.setPythonIPC(pythonIPC);
 
+	// Initialize AI/Notification Services
+	elevenLabsService = new ElevenLabsService();
+	bedrockService = new BedrockService();
+	pushoverService = new PushoverService();
+
+	// Initialize Distraction Manager (orchestrator)
+	distractionManager = new DistractionManager({
+		pythonIPC,
+		sessionManager,
+		windowTracker,
+		elevenLabsService,
+		bedrockService,
+		pushoverService
+	});
+
 	// Setup IPC handlers
 	setupIPCHandlers({
 		sessionManager,
 		windowTracker,
 		getOverlayWindow,
-		elevenLabsService
+		elevenLabsService,
+		distractionManager
 	});
 
-	// Setup Python IPC event forwarding
+	// Setup Python IPC event forwarding to DistractionManager
 	setupPythonIPCForwarding({
 		pythonIPC,
-		getMainWindow,
-		getOverlayWindow
+		distractionManager
 	});
+
+	// Connect WindowTracker to DistractionManager
+	// Override the broadcast method to also update distraction manager
+	const originalBroadcast = windowTracker.broadcast.bind(windowTracker);
+	windowTracker.broadcast = function (windowInfo) {
+		originalBroadcast(windowInfo);
+		if (windowInfo) {
+			distractionManager.updateWindowState(windowInfo);
+		}
+	};
 
 	console.log('✅ All services initialized');
 };
@@ -175,6 +209,9 @@ app.on('ready', () => {
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', async () => {
 	// Clean up all services
+	if (distractionManager) {
+		distractionManager.destroy();
+	}
 	if (windowTracker) {
 		windowTracker.destroy();
 	}
@@ -196,7 +233,7 @@ app.on('activate', () => {
 	// On OS X it's common to re-create a window in the app when the
 	// dock icon is clicked and there are no other windows open.
 	if (BrowserWindow.getAllWindows().length === 0) {
-		if (!windowTracker || !sessionManager || !pythonIPC) {
+		if (!windowTracker || !sessionManager || !pythonIPC || !distractionManager) {
 			initializeServices();
 		}
 		createDashboardWindow();
@@ -207,6 +244,9 @@ app.on('activate', () => {
 
 app.on('will-quit', async () => {
 	// Clean up all services
+	if (distractionManager) {
+		distractionManager.destroy();
+	}
 	if (windowTracker) {
 		windowTracker.destroy();
 	}

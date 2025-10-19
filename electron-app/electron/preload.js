@@ -12,13 +12,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	toggleOverlay: (visible) => ipcRenderer.send('toggle-overlay', visible),
 	setDubsState: (state) => ipcRenderer.send('set-dubs-state', state),
 
-	// Voice notifications
+	// Voice notifications (legacy - kept for compatibility)
 	playVoiceNotification: () => ipcRenderer.invoke('play-voice-notification'),
 
 	// Listeners for updates from main process
-	onActiveWindowUpdate: (callback) => {
-		ipcRenderer.on('active-window-update', (event, data) => callback(data));
-	},
 	onSessionStarted: (callback) => {
 		ipcRenderer.on('session-started', (event, data) => callback(data));
 	},
@@ -29,15 +26,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
 		ipcRenderer.on('dubs-state-change', (event, state) => callback(state));
 	},
 
-	// Python vision event listeners
-	onVisionFocusUpdate: (callback) => {
-		ipcRenderer.on('vision-focus-update', (event, data) => callback(data));
+	// Distraction alert listener (new unified system)
+	onDistractionAlert: (callback) => {
+		ipcRenderer.on('distraction-alert', (event, alertPackage) => callback(alertPackage));
 	},
-	onVisionDistractionDetected: (callback) => {
-		ipcRenderer.on('vision-distraction-detected', (event, data) => callback(data));
-	},
-	onVisionFocusRestored: (callback) => {
-		ipcRenderer.on('vision-focus-restored', (event, data) => callback(data));
+
+	// Active window tracking listener
+	onActiveWindowUpdate: (callback) => {
+		ipcRenderer.on('active-window-update', (event, windowInfo) => callback(windowInfo));
 	},
 
 	// Cleanup listeners

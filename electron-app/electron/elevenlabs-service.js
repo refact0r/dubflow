@@ -21,16 +21,16 @@ class ElevenLabsService {
 
 		// Random distraction messages
 		this.messages = [
-			"Hey! Lock back in!",
-			"Focus up, champ!",
-			"What are you doing?",
-			"Eyes on the screen!",
+			'Hey! Lock back in!',
+			'Focus up, champ!',
+			'What are you doing?',
+			'Eyes on the screen!',
 			"Let's get back to work!",
-			"Come on, stay focused!",
-			"You got this, lock in!",
-			"No distractions allowed!",
-			"Get back to grinding!",
-			"Time to focus!"
+			'Come on, stay focused!',
+			'You got this, lock in!',
+			'No distractions allowed!',
+			'Get back to grinding!',
+			'Time to focus!'
 		];
 
 		console.log('🎙️ ElevenLabs Service initialized');
@@ -62,7 +62,7 @@ class ElevenLabsService {
 		return new Promise((resolve, reject) => {
 			const postData = JSON.stringify({
 				text: text,
-				model_id: "eleven_turbo_v2_5",
+				model_id: 'eleven_turbo_v2_5',
 				voice_settings: {
 					stability: 0.5,
 					similarity_boost: 0.75,
@@ -111,7 +111,41 @@ class ElevenLabsService {
 	}
 
 	/**
-	 * Play a distraction notification
+	 * Generate speech from custom text
+	 * @param {string} text - Custom text to convert to speech
+	 * @returns {Promise<{success: boolean, audioData?: Buffer, message?: string, error?: string}>}
+	 */
+	async generateSpeechFromText(text) {
+		try {
+			if (!this.isEnabled) {
+				return {
+					success: false,
+					error: 'Service disabled'
+				};
+			}
+
+			console.log(`🎙️ Generating speech: "${text}"`);
+
+			const audioBuffer = await this.generateSpeech(text);
+
+			console.log(`✅ Speech generated: ${audioBuffer.length} bytes`);
+
+			return {
+				success: true,
+				audioData: audioBuffer,
+				message: text
+			};
+		} catch (error) {
+			console.error('❌ Failed to generate speech:', error.message);
+			return {
+				success: false,
+				error: error.message
+			};
+		}
+	}
+
+	/**
+	 * Play a distraction notification (uses random message)
 	 * @returns {Promise<{success: boolean, audioData?: Buffer, message?: string, error?: string}>}
 	 */
 	async playDistractionNotification() {
@@ -124,17 +158,7 @@ class ElevenLabsService {
 			}
 
 			const message = this.getRandomMessage();
-			console.log(`🎙️ Generating speech: "${message}"`);
-
-			const audioBuffer = await this.generateSpeech(message);
-
-			console.log(`✅ Speech generated: ${audioBuffer.length} bytes`);
-
-			return {
-				success: true,
-				audioData: audioBuffer,
-				message: message
-			};
+			return await this.generateSpeechFromText(message);
 		} catch (error) {
 			console.error('❌ Failed to generate speech:', error.message);
 			return {
@@ -146,4 +170,3 @@ class ElevenLabsService {
 }
 
 export default ElevenLabsService;
-
