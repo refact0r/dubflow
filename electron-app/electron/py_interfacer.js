@@ -66,7 +66,12 @@ class PythonIPCInterface extends EventEmitter {
                         // IF THE DATA IS AWS-REKOG RELATED
                         if(eventData.hasOwnProperty("scene_analysis")) {
                             console.log("AWS Rekognition Detects...");
-                            console.log(eventData);
+                            console.log(eventData.scene_analysis.labels);
+
+                            // CALL AWS PING
+                            // This should be able to take the stringified form of eventData.scene_analysis
+                            // and turn it STRAIGHT into ElevenLabs powered speech.
+                            // rekognitionToSpeech(str(eventData.scene_analysis));
                         }
 
                         // IF THE DATA IS A TRIGGER!!
