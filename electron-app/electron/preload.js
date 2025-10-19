@@ -12,9 +12,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	toggleOverlay: (visible) => ipcRenderer.send('toggle-overlay', visible),
 	setDubsState: (state) => ipcRenderer.send('set-dubs-state', state),
 
-	// Voice notifications (legacy - kept for compatibility)
-	playVoiceNotification: () => ipcRenderer.invoke('play-voice-notification'),
-
 	// Emergency stop for distraction manager
 	emergencyStopDistraction: () => ipcRenderer.send('emergency-stop-distraction'),
 
