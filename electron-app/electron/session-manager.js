@@ -111,12 +111,15 @@ export class SessionManager {
 		}, 1000);
 
 		console.log('✅ Session state updated:', this.state);
-		this.broadcast('session-started', this.getState());
 
-		// Reset distraction manager state for new session
+		// Reset distraction manager state for new session and initialize with focused state
 		if (this.distractionManager) {
 			this.distractionManager.resetDistractionState();
+			// Initialize distraction manager's history with the initial focused event
+			this.distractionManager.focusStateHistory = [...this.state.focusStateHistory];
 		}
+
+		this.broadcast('session-started', this.getState());
 
 		return this.getState();
 	}

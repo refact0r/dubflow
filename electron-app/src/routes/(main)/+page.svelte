@@ -42,43 +42,25 @@
 		}
 
 		const segments = [];
-		let totalCoveredTime = 0; // Track how much time we've covered with segments
 
 		for (let i = 0; i < history.length; i++) {
 			const event = history[i];
 			const nextEvent = history[i + 1];
 
 			// Use elapsedTime from events (accounts for pauses)
-			let segmentStart = event.elapsedTime || 0;
-			let segmentEnd = nextEvent ? nextEvent.elapsedTime || 0 : currentElapsed;
-
-			// Ensure segment end doesn't exceed current elapsed time
-			segmentEnd = Math.min(segmentEnd, currentElapsed);
-
-			// Ensure segment start isn't beyond current time
-			if (segmentStart > currentElapsed) {
-				break;
-			}
+			const segmentStart = event.elapsedTime ?? 0;
+			const segmentEnd = nextEvent ? (nextEvent.elapsedTime ?? 0) : currentElapsed;
 
 			// Calculate duration of this segment in seconds
 			const segmentDuration = segmentEnd - segmentStart;
 
-			// Skip zero or negative duration segments (except for the last one)
-			if (segmentDuration <= 0 && nextEvent) {
+			// Skip zero or negative duration segments
+			if (segmentDuration <= 0) {
 				continue;
 			}
-
-			// For the last segment, ensure it has at least some minimal duration
-			const finalDuration = !nextEvent ? Math.max(segmentDuration, 0.1) : segmentDuration;
-
-			if (finalDuration <= 0) {
-				continue;
-			}
-
-			totalCoveredTime += finalDuration;
 
 			// Calculate percentage of TOTAL SESSION DURATION
-			const widthPercent = (finalDuration / sessionDuration) * 100;
+			const widthPercent = (segmentDuration / sessionDuration) * 100;
 
 			segments.push({
 				state: event.state,
@@ -237,7 +219,9 @@
 					<!-- Current time indicator -->
 					<div
 						class="indicator"
-						style="left: {((sessionStore.duration - displayTime) / sessionStore.duration) * 100}%;"
+						style="left: {((sessionStore.duration - sessionStore.remainingTime) /
+							sessionStore.duration) *
+							100}%;"
 					></div>
 				{:else}
 					<!-- Default state when no session is active -->
@@ -459,7 +443,7 @@
 
 	.segment {
 		height: 100%;
-		flex-shrink: 0;
+		transition: width 0.3s ease;
 	}
 
 	.segment.focused {
@@ -676,6 +660,7 @@
 		flex: 1;
 		height: 0.5rem;
 		background: var(--bg-1);
+		border: 1px solid var(--txt-1);
 		border-radius: 0.25rem;
 		overflow: hidden;
 	}
