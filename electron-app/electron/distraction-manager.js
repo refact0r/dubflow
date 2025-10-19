@@ -71,6 +71,7 @@ export class DistractionManager extends EventEmitter {
 
 		console.log('🪟 Window state updated:', {
 			appName: windowInfo.appName,
+			url: windowInfo.url,
 			isProductive: windowInfo.isProductive,
 			sessionActive: this.sessionManager.isSessionActive()
 		});
@@ -115,27 +116,27 @@ export class DistractionManager extends EventEmitter {
 	 */
 	handleImmediateRefocus(source) {
 		console.log(`🚨 IMMEDIATE REFOCUS from ${source} - stopping all distraction flows`);
-		
+
 		// Stop any ongoing timer
 		if (this.distractionStartTime) {
 			console.log('⏹️ Stopping distraction timer');
 			this.distractionStartTime = null;
 		}
-		
+
 		// Clear any check intervals
 		if (this.checkInterval) {
 			clearInterval(this.checkInterval);
 			this.checkInterval = null;
 		}
-		
+
 		// Reset distraction states
 		this.isWindowDistracted = false;
 		this.isEyeDistracted = false;
 		this.lastTriggerSource = null;
-		
+
 		// Immediately broadcast refocus to stop dog animation
 		this.broadcastRefocus();
-		
+
 		console.log('✅ Immediate refocus handled - dog animation should stop');
 	}
 
@@ -145,16 +146,18 @@ export class DistractionManager extends EventEmitter {
 	 */
 	checkDistractionState() {
 		const sessionActive = this.sessionManager.isSessionActive();
-		// console.log('🔍 Checking distraction state:', {
-		// 	sessionActive,
-		// 	isWindowDistracted: this.isWindowDistracted,
-		// 	isEyeDistracted: this.isEyeDistracted,
-		// 	hasTimer: !!this.distractionStartTime
-		// });
+		const sessionPaused = this.sessionManager.isSessionPaused();
+		console.log('🔍 Checking distraction state:', {
+			sessionActive,
+			sessionPaused,
+			isWindowDistracted: this.isWindowDistracted,
+			isEyeDistracted: this.isEyeDistracted,
+			hasTimer: !!this.distractionStartTime
+		});
 
-		// Only track distractions if a session is active
-		if (!sessionActive) {
-			console.log('⏸️ No active session, resetting timer');
+		// Only track distractions if a session is active AND not paused
+		if (!sessionActive || sessionPaused) {
+			console.log('⏸️ No active session or session paused, resetting timer');
 			this.resetTimer();
 			return;
 		}
@@ -182,9 +185,8 @@ export class DistractionManager extends EventEmitter {
 
 		// Start checking if threshold is reached
 		this.checkInterval = setInterval(() => {
-			console.log("INITIATING A THRESHOLD CHECK!");
-			if(this.checkThreshold() === "exitThis" || 
-				this.checkThreshold === "handlingDistraction") {
+			console.log('INITIATING A THRESHOLD CHECK!');
+			if (this.checkThreshold() === 'exitThis' || this.checkThreshold === 'handlingDistraction') {
 				clearInterval(this.checkInterval);
 			}
 		}, this.CHECK_INTERVAL);
@@ -196,7 +198,7 @@ export class DistractionManager extends EventEmitter {
 	resetTimer() {
 		if (this.distractionStartTime) {
 			console.log('✅ User refocused, timer reset');
-			
+
 			// Broadcast refocus event to reset dog's state
 			this.broadcastRefocus();
 		}
@@ -214,14 +216,14 @@ export class DistractionManager extends EventEmitter {
 	 * Check if distraction threshold has been reached
 	 */
 	checkThreshold() {
-		if (!this.distractionStartTime) return "exitThis";
+		if (!this.distractionStartTime) return 'exitThis';
 
 		// Safety check: if user is no longer distracted, stop immediately
 		const isCurrentlyDistracted = this.isWindowDistracted || this.isEyeDistracted;
 		if (!isCurrentlyDistracted) {
 			console.log('🛑 User refocused during countdown - stopping threshold check');
 			this.distractionStartTime = null;
-			return "exitThis";
+			return 'exitThis';
 		}
 
 		const elapsed = Date.now() - this.distractionStartTime;
@@ -229,12 +231,12 @@ export class DistractionManager extends EventEmitter {
 		if (elapsed >= this.DISTRACTION_THRESHOLD) {
 			console.log('🔥 Distraction threshold reached! Triggering alert...');
 			this.handleDistractionThreshold();
-			return "handlingDistraction";
+			return 'handlingDistraction';
 		}
-		return "continuing";
+		return 'continuing';
 	}
 	async sleep(ms) {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
 	/**
@@ -246,27 +248,29 @@ export class DistractionManager extends EventEmitter {
 		return new Promise((resolve) => {
 			const startTime = Date.now();
 			const checkInterval = 100; // Check every 100ms
-			
+
 			const checkForData = () => {
 				// Check if we have new data (not empty and different from previous)
-				if (this.pythonIPC.globalBedrockString && 
-					this.pythonIPC.globalBedrockString.trim() !== '') {
+				if (
+					this.pythonIPC.globalBedrockString &&
+					this.pythonIPC.globalBedrockString.trim() !== ''
+				) {
 					console.log('✅ Rekognition data received asynchronously');
 					resolve(this.pythonIPC.globalBedrockString);
 					return;
 				}
-				
+
 				// Check if we've exceeded timeout
 				if (Date.now() - startTime > timeout) {
 					console.warn('⚠️ Timeout waiting for Rekognition data');
 					resolve(null);
 					return;
 				}
-				
+
 				// Continue checking
 				setTimeout(checkForData, checkInterval);
 			};
-			
+
 			// Start checking
 			checkForData();
 		});
@@ -286,16 +290,16 @@ export class DistractionManager extends EventEmitter {
 			let rekognitionData = null;
 			try {
 				console.log('📸 Requesting Rekognition data from Python...');
-				
+
 				// Clear previous data to ensure we get fresh data
 				this.pythonIPC.globalBedrockString = '';
-				
+
 				// Request new data
 				this.pythonIPC.requestData();
-				
+
 				// Wait asynchronously for the data to be available
 				rekognitionData = await this.waitForRekognitionData(3000); // 3 second timeout
-				
+
 				if (rekognitionData) {
 					console.log('** Rekognition data received ** ', rekognitionData);
 				} else {
@@ -309,7 +313,7 @@ export class DistractionManager extends EventEmitter {
 			// Step 2: Gather all context
 			const context = this.gatherContext(rekognitionData);
 			console.log(context);
-			
+
 			console.log('📋 Context gathered:', JSON.stringify(context, null, 2));
 
 			// Step 3: Generate message using Bedrock
@@ -348,7 +352,6 @@ export class DistractionManager extends EventEmitter {
 			// Emit event for other listeners
 			this.emit('distraction-occurred', alertPackage);
 			this.DISTRACTION_THRESHOLD = 6000;
-
 		} catch (error) {
 			console.error('❌ Error handling distraction threshold:', error);
 		}
@@ -362,15 +365,12 @@ export class DistractionManager extends EventEmitter {
 	gatherContext(rekognitionData) {
 		const sessionState = this.sessionManager.getState();
 
-		// Calculate time in session
-		const timeInSession = sessionState.startTime
-			? Math.floor((Date.now() - sessionState.startTime) / 1000 / 60) // minutes
-			: 0;
-
 		return {
 			session: {
 				taskName: sessionState.taskName || 'Unknown task',
-				timeElapsed: timeInSession,
+				timeElapsedMinutes: Math.floor(sessionState.elapsedTime / 60), // Convert seconds to minutes
+				timeRemainingMinutes: Math.floor(sessionState.remainingTime / 60), // Convert seconds to minutes
+				durationMinutes: Math.floor(sessionState.duration / 60), // Total duration in minutes
 				isActive: sessionState.isActive
 			},
 			window: {
@@ -477,27 +477,27 @@ export class DistractionManager extends EventEmitter {
 	 */
 	emergencyStop() {
 		console.log('🚨 EMERGENCY STOP - immediately stopping all distraction flows');
-		
+
 		// Stop any ongoing timer
 		if (this.distractionStartTime) {
 			this.distractionStartTime = null;
 		}
-		
+
 		// Clear any check intervals
 		if (this.checkInterval) {
 			clearInterval(this.checkInterval);
 			this.checkInterval = null;
 		}
-		
+
 		// Reset all distraction states
 		this.isWindowDistracted = false;
 		this.isEyeDistracted = false;
 		this.lastTriggerSource = null;
 		this.currentWindowInfo = null;
-		
+
 		// Immediately broadcast refocus to stop dog animation
 		this.broadcastRefocus();
-		
+
 		console.log('✅ Emergency stop complete - dog should be sleeping');
 	}
 
@@ -511,7 +511,7 @@ export class DistractionManager extends EventEmitter {
 		this.distractionStartTime = null;
 		this.lastTriggerSource = null;
 		this.currentWindowInfo = null;
-		
+
 		if (this.checkInterval) {
 			clearInterval(this.checkInterval);
 			this.checkInterval = null;

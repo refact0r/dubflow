@@ -1,29 +1,22 @@
 /**
  * Session Manager Module
- * Handles focus session state and lifecycle management
+ * Handles focus session state and lifecycle management (Pomodoro timer)
  */
 
 export class SessionManager {
 	constructor() {
 		this.state = {
 			isActive: false,
-			startTime: null,
-			elapsedTime: 0,
-			focusTime: 0,
-			distractionCount: 0,
-			taskName: ''
+			isPaused: false,
+			taskName: '',
+			duration: 0, // Total session duration in seconds
+			startTime: null, // Timestamp when session started
+			pausedAt: null, // Timestamp when paused, null if not paused
+			totalPausedTime: 0 // Accumulated milliseconds spent paused
 		};
 		this.windows = new Set(); // Store window references
-		this.pythonIPC = null;
 		this.distractionManager = null; // Reference to distraction manager
-	}
-
-	/**
-	 * Set the Python IPC interface reference
-	 * @param {PythonIPCInterface} pythonIPC - Python IPC instance
-	 */
-	setPythonIPC(pythonIPC) {
-		this.pythonIPC = pythonIPC;
+		this.timerInterval = null; // Interval for checking if time is up
 	}
 
 	/**
@@ -71,38 +64,106 @@ export class SessionManager {
 	/**
 	 * Start a new focus session
 	 * @param {string} taskName - Name of the task to focus on
+	 * @param {number} durationMinutes - Duration in minutes
 	 * @returns {Object} Updated session state
 	 */
-	start(taskName) {
-		console.log(`🎯 Starting session: "${taskName}"`);
+	start(taskName, durationMinutes) {
+		console.log(`🎯 Starting session: "${taskName}" for ${durationMinutes} minutes`);
+
+		// Clear any existing timer
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
+		}
 
 		this.state = {
 			isActive: true,
-			startTime: Date.now(),
+			isPaused: false,
 			taskName,
-			elapsedTime: 0,
-			focusTime: 0,
-			distractionCount: 0
+			duration: durationMinutes * 60, // Convert to seconds
+			startTime: Date.now(),
+			pausedAt: null,
+			totalPausedTime: 0
 		};
 
-		console.log('✅ Session state updated:', this.state);
+		// Start interval to check if time is up (check every second)
+		this.timerInterval = setInterval(() => {
+			if (!this.state.isPaused) {
+				const remainingTime = this.getState().remainingTime;
 
-		this.broadcast('session-started', this.state);
+				// Auto-stop when time runs out
+				if (remainingTime <= 0) {
+					console.log('⏰ Session time complete - auto-stopping');
+					this.stop();
+				} else {
+					// Broadcast updated state every second
+					this.broadcast('session-updated', this.getState());
+				}
+			}
+		}, 1000);
+
+		console.log('✅ Session state updated:', this.state);
+		this.broadcast('session-started', this.getState());
 
 		// Reset distraction manager state for new session
 		if (this.distractionManager) {
 			this.distractionManager.resetDistractionState();
 		}
 
-		// Notify Python IPC about session start
-		if (this.pythonIPC && this.pythonIPC.isConnected) {
-			this.pythonIPC.send('session_start', {
-				taskName,
-				timestamp: Date.now()
-			});
+		return this.getState();
+	}
+
+	/**
+	 * Pause the current session
+	 * @returns {Object} Updated session state
+	 */
+	pause() {
+		if (!this.state.isActive || this.state.isPaused) {
+			console.warn('⚠️ Cannot pause: session not active or already paused');
+			return this.getState();
 		}
 
-		return this.state;
+		console.log('⏸️  Pausing session');
+		this.state.isPaused = true;
+		this.state.pausedAt = Date.now();
+
+		this.broadcast('session-paused', this.getState());
+
+		// Tell distraction manager to stop tracking
+		if (this.distractionManager) {
+			this.distractionManager.emergencyStop();
+		}
+
+		return this.getState();
+	}
+
+	/**
+	 * Resume the current session
+	 * @returns {Object} Updated session state
+	 */
+	resume() {
+		if (!this.state.isActive || !this.state.isPaused) {
+			console.warn('⚠️ Cannot resume: session not active or not paused');
+			return this.getState();
+		}
+
+		console.log('▶️  Resuming session');
+
+		// Accumulate paused time
+		if (this.state.pausedAt) {
+			this.state.totalPausedTime += Date.now() - this.state.pausedAt;
+		}
+
+		this.state.isPaused = false;
+		this.state.pausedAt = null;
+
+		this.broadcast('session-resumed', this.getState());
+
+		// Reset distraction manager state
+		if (this.distractionManager) {
+			this.distractionManager.resetDistractionState();
+		}
+
+		return this.getState();
 	}
 
 	/**
@@ -112,57 +173,52 @@ export class SessionManager {
 	stop() {
 		console.log('⏹️  Stopping session');
 
-		this.state.isActive = false;
+		// Clear timer
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
+			this.timerInterval = null;
+		}
 
-		this.broadcast('session-stopped', this.state);
+		this.state.isActive = false;
+		this.state.isPaused = false;
+
+		this.broadcast('session-stopped', this.getState());
 
 		// Reset distraction manager state when session ends
 		if (this.distractionManager) {
 			this.distractionManager.resetDistractionState();
 		}
 
-		// Notify Python IPC about session stop
-		if (this.pythonIPC && this.pythonIPC.isConnected) {
-			this.pythonIPC.send('session_stop', {
-				timestamp: Date.now()
-			});
-		}
-
-		return this.state;
+		return this.getState();
 	}
 
 	/**
-	 * Update session metrics
-	 * @param {Object} updates - Object containing metrics to update
-	 */
-	updateMetrics(updates) {
-		this.state = { ...this.state, ...updates };
-		this.broadcast('session-updated', this.state);
-	}
-
-	/**
-	 * Increment distraction count
-	 */
-	incrementDistractions() {
-		this.state.distractionCount++;
-		this.broadcast('session-updated', this.state);
-	}
-
-	/**
-	 * Update elapsed and focus time
-	 */
-	updateTime() {
-		if (this.state.isActive && this.state.startTime) {
-			this.state.elapsedTime = Date.now() - this.state.startTime;
-		}
-	}
-
-	/**
-	 * Get current session state
+	 * Get current session state with computed values
 	 * @returns {Object} Current session state
 	 */
 	getState() {
-		return { ...this.state };
+		const now = Date.now();
+		let elapsedTime = 0;
+		let remainingTime = this.state.duration;
+
+		if (this.state.isActive && this.state.startTime) {
+			// Calculate elapsed time accounting for paused time
+			const totalElapsed = now - this.state.startTime;
+			const pausedTime =
+				this.state.totalPausedTime + (this.state.pausedAt ? now - this.state.pausedAt : 0);
+			elapsedTime = Math.floor((totalElapsed - pausedTime) / 1000); // Convert to seconds
+			remainingTime = Math.max(0, this.state.duration - elapsedTime);
+		}
+
+		return {
+			isActive: this.state.isActive,
+			isPaused: this.state.isPaused,
+			taskName: this.state.taskName,
+			duration: this.state.duration,
+			startTime: this.state.startTime,
+			elapsedTime,
+			remainingTime
+		};
 	}
 
 	/**
@@ -174,10 +230,21 @@ export class SessionManager {
 	}
 
 	/**
+	 * Check if session is paused
+	 * @returns {boolean} True if session is paused
+	 */
+	isSessionPaused() {
+		return this.state.isPaused;
+	}
+
+	/**
 	 * Clean up resources
 	 */
 	destroy() {
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
+		}
 		this.windows.clear();
-		this.pythonIPC = null;
+		this.distractionManager = null;
 	}
 }

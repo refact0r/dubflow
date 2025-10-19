@@ -24,9 +24,18 @@ export const setupIPCHandlers = ({
 	console.log('🔌 Setting up IPC handlers...');
 
 	// Session Management
-	ipcMain.on('start-session', (event, taskName) => {
-		sessionManager.start(taskName);
+	ipcMain.on('start-session', (event, data) => {
+		const { taskName, duration } = data;
+		sessionManager.start(taskName, duration);
 		windowTracker.start();
+	});
+
+	ipcMain.on('pause-session', () => {
+		sessionManager.pause();
+	});
+
+	ipcMain.on('resume-session', () => {
+		sessionManager.resume();
 	});
 
 	ipcMain.on('stop-session', () => {

@@ -39,8 +39,7 @@ let bedrockService = null;
 let pushoverService = null;
 let distractionManager = null;
 
-// Helper functions to get window references (for IPC handlers)
-const getMainWindow = () => mainWindow;
+// Helper function to get window reference (for IPC handlers)
 const getOverlayWindow = () => overlayWindow;
 
 const createDashboardWindow = () => {
@@ -154,10 +153,6 @@ const initializeServices = () => {
 	pythonIPC = new PythonIPCInterface();
 	pythonIPC.connect();
 
-	// Connect session manager to Python IPC and distraction manager
-	sessionManager.setPythonIPC(pythonIPC);
-	sessionManager.setDistractionManager(distractionManager);
-
 	// Initialize AI/Notification Services
 	elevenLabsService = new ElevenLabsService();
 	bedrockService = new BedrockService();
@@ -172,6 +167,9 @@ const initializeServices = () => {
 		bedrockService,
 		pushoverService
 	});
+
+	// Now connect session manager to distraction manager (after it's initialized)
+	sessionManager.setDistractionManager(distractionManager);
 
 	// Setup IPC handlers
 	setupIPCHandlers({
@@ -207,7 +205,7 @@ app.on('ready', () => {
 	initializeServices();
 	createDashboardWindow();
 	createOverlayWindow();
-	windowTracker.start();
+	// Note: windowTracker.start() is called when a session starts (see ipc-handlers.js)
 });
 
 // Quit when all windows are closed, except on macOS.
@@ -242,7 +240,7 @@ app.on('activate', () => {
 		}
 		createDashboardWindow();
 		createOverlayWindow();
-		windowTracker.start();
+		// Note: windowTracker.start() is called when a session starts (see ipc-handlers.js)
 	}
 });
 

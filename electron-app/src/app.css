@@ -41,10 +41,10 @@ button.text {
 	padding: 1rem 1.5rem;
 	border: none;
 	/* border: 1px solid var(--txt-1); */
-	background: hsl(250, 40%, 80%);
+	background: var(--acc-1);
 	/* transform: translate(-2px, -2px); */
 	/* box-shadow: 2px 2px 0px 0px var(--txt-1); */
-	border-radius: 3rem;
+	border-radius: 1rem;
 	cursor: pointer;
 }
 

@@ -4,30 +4,49 @@
  */
 
 export class SessionStore {
-	isActive = $state(false); // Whether a focus session is currently running
-	taskName = $state(''); // Name/description of the current task (e.g., "Study for exam")
-	startTime = $state(null); // Timestamp (ms) when the session started
-	elapsedTime = $state(0); // Total elapsed time in seconds
-	focusTime = $state(0); // Time spent actually focused in seconds
-	distractionCount = $state(0); // Number of times user got distracted during session
+	isActive = $state(false);
+	isPaused = $state(false);
+	taskName = $state('');
+	duration = $state(0); // Total duration in seconds
+	startTime = $state(null);
+	elapsedTime = $state(0);
+	remainingTime = $state(0);
 
 	constructor() {
 		// Set up IPC listeners if in Electron environment
 		if (typeof window !== 'undefined' && window.electronAPI) {
 			window.electronAPI.onSessionStarted((data) => {
-				this.isActive = true;
+				this.isActive = data.isActive;
+				this.isPaused = data.isPaused;
 				this.taskName = data.taskName;
+				this.duration = data.duration;
 				this.startTime = data.startTime;
 				this.elapsedTime = data.elapsedTime;
-				this.focusTime = data.focusTime;
-				this.distractionCount = data.distractionCount;
+				this.remainingTime = data.remainingTime;
+			});
+
+			window.electronAPI.onSessionPaused((data) => {
+				this.isPaused = data.isPaused;
+				this.elapsedTime = data.elapsedTime;
+				this.remainingTime = data.remainingTime;
+			});
+
+			window.electronAPI.onSessionResumed((data) => {
+				this.isPaused = data.isPaused;
+				this.elapsedTime = data.elapsedTime;
+				this.remainingTime = data.remainingTime;
 			});
 
 			window.electronAPI.onSessionStopped((data) => {
-				this.isActive = false;
+				this.isActive = data.isActive;
+				this.isPaused = data.isPaused;
 				this.elapsedTime = data.elapsedTime;
-				this.focusTime = data.focusTime;
-				this.distractionCount = data.distractionCount;
+				this.remainingTime = data.remainingTime;
+			});
+
+			window.electronAPI.onSessionUpdated((data) => {
+				this.elapsedTime = data.elapsedTime;
+				this.remainingTime = data.remainingTime;
 			});
 
 			// Load initial state
@@ -39,17 +58,30 @@ export class SessionStore {
 		if (window.electronAPI) {
 			const state = await window.electronAPI.getSessionState();
 			this.isActive = state.isActive;
+			this.isPaused = state.isPaused;
 			this.taskName = state.taskName;
+			this.duration = state.duration;
 			this.startTime = state.startTime;
 			this.elapsedTime = state.elapsedTime;
-			this.focusTime = state.focusTime;
-			this.distractionCount = state.distractionCount;
+			this.remainingTime = state.remainingTime;
 		}
 	}
 
-	start(taskName) {
+	start(taskName, durationMinutes) {
 		if (window.electronAPI) {
-			window.electronAPI.startSession(taskName);
+			window.electronAPI.startSession({ taskName, duration: durationMinutes });
+		}
+	}
+
+	pause() {
+		if (window.electronAPI) {
+			window.electronAPI.pauseSession();
+		}
+	}
+
+	resume() {
+		if (window.electronAPI) {
+			window.electronAPI.resumeSession();
 		}
 	}
 
@@ -57,14 +89,6 @@ export class SessionStore {
 		if (window.electronAPI) {
 			window.electronAPI.stopSession();
 		}
-	}
-
-	// Computed elapsed time (updates in real-time)
-	get currentElapsed() {
-		if (this.isActive && this.startTime) {
-			return Math.floor((Date.now() - this.startTime) / 1000);
-		}
-		return this.elapsedTime;
 	}
 }
 

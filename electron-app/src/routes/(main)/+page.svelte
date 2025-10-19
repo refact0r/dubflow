@@ -1,19 +1,13 @@
 <script>
 	import { sessionStore } from '$lib/stores';
 
-	// Mockup data
-	const sessionDuration = 30 * 60; // 30 minutes in seconds
-	const events = [
-		{ type: 'focus', start: 0, duration: 300 },
-		{ type: 'distraction', start: 300, duration: 120 },
-		{ type: 'focus', start: 420, duration: 480 },
-		{ type: 'distraction', start: 900, duration: 120 },
-		{ type: 'focus', start: 1020, duration: 480 },
-		{ type: 'current', start: 1500, duration: 150 }
-	];
+	const sessionDuration = 30 * 60; // 30 minutes in seconds for timeline display
 
-	let currentTime = $state(1650); // 27.5 minutes
-	let taskName = $state('Study unit 5 for the calculus midterm!');
+	let showModal = $state(false);
+	let modalTaskName = $state('');
+	let modalDuration = $state(25); // Default to 25 minutes
+	let displayTime = $state(0); // For smooth RAF updates
+	let rafId = $state(null);
 
 	function formatTime(seconds) {
 		const mins = Math.floor(seconds / 60);
@@ -21,66 +15,185 @@
 		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 	}
 
+	function openModal() {
+		modalTaskName = '';
+		modalDuration = 25; // Reset to default
+		showModal = true;
+	}
+
+	function closeModal() {
+		showModal = false;
+	}
+
 	function handleStartSession() {
-		sessionStore.start(taskName);
+		if (modalTaskName.trim() && modalDuration > 0) {
+			sessionStore.start(modalTaskName, modalDuration);
+			closeModal();
+		}
+	}
+
+	function handlePauseSession() {
+		sessionStore.pause();
+	}
+
+	function handleResumeSession() {
+		sessionStore.resume();
 	}
 
 	function handleStopSession() {
 		sessionStore.stop();
 	}
+
+	function handleKeydown(event) {
+		if (event.key === 'Escape') {
+			closeModal();
+		} else if (event.key === 'Enter') {
+			handleStartSession();
+		}
+	}
+
+	function selectDuration(minutes) {
+		modalDuration = minutes;
+	}
+
+	// RequestAnimationFrame loop for smooth timer updates and future Dubs animation management
+	$effect(() => {
+		if (sessionStore.isActive) {
+			// Start RAF loop
+			const animate = () => {
+				// Update display time from session store
+				displayTime = sessionStore.remainingTime;
+
+				// TODO: Future Dubs animation management can be added here
+				// This loop runs on every frame when session is active
+
+				rafId = requestAnimationFrame(animate);
+			};
+
+			rafId = requestAnimationFrame(animate);
+
+			// Cleanup function
+			return () => {
+				if (rafId) {
+					cancelAnimationFrame(rafId);
+					rafId = null;
+				}
+			};
+		} else {
+			// Session not active, display 00:00
+			displayTime = 0;
+
+			// Cleanup RAF if it's running
+			if (rafId) {
+				cancelAnimationFrame(rafId);
+				rafId = null;
+			}
+		}
+	});
 </script>
 
 <div class="container">
 	<div class="left">
 		<div class="timer">
-			<div class="time">12:34</div>
-			<div class="buttons">
-				<button class="text">Pause</button>
-				<button class="text">End</button>
-			</div>
-		</div>
-		{#if !sessionStore.isActive}
-			<div class="start-session">
-				<input
-					type="text"
-					bind:value={taskName}
-					placeholder="What are you working on?"
-					class="task-input"
-				/>
-				<button onclick={handleStartSession} class="btn btn-primary"> Start Session </button>
-			</div>
-		{:else}
-			<div class="active-session">
-				<div class="task-info">
-					<span class="task-label">Current Task:</span>
-					<span class="task-name">{sessionStore.taskName}</span>
+			<div class="time">{formatTime(displayTime)}</div>
+			{#if !sessionStore.isActive}
+				<div class="start-session">
+					<button onclick={openModal} class="btn-start text"> Start Session </button>
 				</div>
-				<button onclick={handleStopSession} class="btn btn-danger"> End Session </button>
-			</div>
-		{/if}
+			{:else if sessionStore.isPaused}
+				<div class="buttons">
+					<button class="text" onclick={handleResumeSession}>Resume</button>
+					<button class="text" onclick={handleStopSession}>End</button>
+				</div>
+			{:else}
+				<div class="buttons">
+					<button class="text" onclick={handlePauseSession}>Pause</button>
+					<button class="text" onclick={handleStopSession}>End</button>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<div class="right">
-		<h2 class="task-name">{taskName}</h2>
+		<h2 class="task-name">{sessionStore.taskName || 'No active task'}</h2>
 		<div class="timeline">
 			<div class="bar">
-				{#each events as event}
+				<!-- Timeline visualization will be populated with real data later -->
+				{#if sessionStore.isActive && sessionStore.duration > 0}
 					<div
-						class="segment {event.type}"
-						style="left: {(event.start / sessionDuration) * 100}%; width: {(event.duration /
-							sessionDuration) *
+						class="indicator"
+						style="left: {((sessionStore.duration - sessionStore.remainingTime) /
+							sessionStore.duration) *
 							100}%;"
 					></div>
-				{/each}
-				<div class="indicator" style="left: {(currentTime / sessionDuration) * 100}%;"></div>
+				{/if}
 			</div>
 			<div class="time-labels">
 				<span class="time-label">00:00</span>
-				<span class="time-label">30:00</span>
+				<span class="time-label"
+					>{sessionStore.duration > 0 ? formatTime(sessionStore.duration) : '00:00'}</span
+				>
 			</div>
 		</div>
 	</div>
 </div>
+
+{#if showModal}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="modal-backdrop" onclick={closeModal}>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="modal"
+			onclick={(e) => e.stopPropagation()}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="modal-title"
+			tabindex="-1"
+		>
+			<h2 id="modal-title" class="modal-title">Start New Session</h2>
+
+			<!-- Duration Selector -->
+			<div class="duration-selector">
+				<button
+					class="duration-btn {modalDuration === 25 ? 'selected' : ''}"
+					onclick={() => selectDuration(25)}
+				>
+					25 min
+				</button>
+				<button
+					class="duration-btn {modalDuration === 45 ? 'selected' : ''}"
+					onclick={() => selectDuration(45)}
+				>
+					45 min
+				</button>
+				<button
+					class="duration-btn {modalDuration === 60 ? 'selected' : ''}"
+					onclick={() => selectDuration(60)}
+				>
+					60 min
+				</button>
+			</div>
+
+			<!-- svelte-ignore a11y_autofocus -->
+			<input
+				type="text"
+				bind:value={modalTaskName}
+				placeholder="What are you working on?"
+				class="task-input"
+				onkeydown={handleKeydown}
+				autofocus
+			/>
+			<div class="modal-buttons">
+				<button onclick={closeModal} class="btn-cancel">Cancel</button>
+				<button onclick={handleStartSession} class="btn-start" disabled={!modalTaskName.trim()}>
+					Start
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.container {
@@ -150,30 +263,120 @@
 		background: var(--bg-2);
 	}
 
-	.segment {
-		position: absolute;
-		height: 100%;
-		/* border: 2px solid var(--txt-1); */
-		/* border-radius: 0.5rem; */
-	}
-
-	.focus {
-		background: var(--acc-1);
-	}
-
-	.distraction {
-		background: var(--alt-1);
-	}
-
-	.current {
-		background: var(--acc-1);
-	}
-
 	.indicator {
 		position: absolute;
 		width: 2px;
 		height: 100%;
 		background: var(--txt-1);
 		transform: translateX(-50%);
+	}
+
+	.start-session {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	/* Modal styles */
+	.modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		backdrop-filter: blur(4px);
+	}
+
+	.modal {
+		background: var(--bg-1);
+		border: 2px solid var(--bg-2);
+		border-radius: 1rem;
+		padding: 2rem;
+		width: 90%;
+		max-width: 500px;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.modal-title {
+		margin: 0;
+		font-size: 1.5rem;
+		font-weight: 500;
+		color: var(--txt-1);
+	}
+
+	/* Duration Selector */
+	.duration-selector {
+		display: flex;
+		gap: 0.75rem;
+		justify-content: center;
+	}
+
+	.duration-btn {
+		flex: 1;
+		padding: 0.75rem 1rem;
+		font-size: 1rem;
+		font-weight: 500;
+		border: 2px solid var(--bg-2);
+		background: transparent;
+		color: var(--txt-1);
+		border-radius: 0.5rem;
+		cursor: pointer;
+		transition: all 0.2s;
+		font-family: inherit;
+	}
+
+	.duration-btn:hover {
+		background: var(--bg-2);
+	}
+
+	.duration-btn.selected {
+		background: var(--acc-1);
+		border-color: var(--acc-1);
+		color: var(--bg-1);
+	}
+
+	.task-input {
+		padding: 0.75rem 1rem;
+		font-size: 1rem;
+		border: 2px solid var(--bg-2);
+		background: var(--bg-1);
+		color: var(--txt-1);
+		border-radius: 0.5rem;
+		font-family: inherit;
+	}
+
+	.task-input:focus {
+		outline: none;
+		border-color: var(--acc-1);
+	}
+
+	.modal-buttons {
+		display: flex;
+		gap: 1rem;
+		justify-content: flex-end;
+	}
+
+	.btn-cancel {
+		padding: 0.75rem 1.5rem;
+		font-size: 1rem;
+		font-weight: 500;
+		border: 2px solid var(--bg-2);
+		background: transparent;
+		color: var(--txt-1);
+		border-radius: 0.5rem;
+		cursor: pointer;
+		transition: background 0.2s;
+		font-family: inherit;
+	}
+
+	.btn-cancel:hover {
+		background: var(--bg-2);
 	}
 </style>

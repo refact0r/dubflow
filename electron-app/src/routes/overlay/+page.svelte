@@ -158,6 +158,7 @@
 	{#if sessionStore.isActive && dubsStore.state !== 'dubs_sleeping' && currentMessage}
 		<div class="thought-bubble">
 			<p>{currentMessage}</p>
+			<!-- <p>Hey! Get back to work! Hey! Get back to work! Hey! Get back to work!</p> -->
 		</div>
 	{/if}
 </div>
@@ -178,8 +179,8 @@
 
 	.dubs-character {
 		position: absolute;
-		bottom: 0;
-		left: 0;
+		bottom: 20px;
+		left: 20px;
 		transition: 0.3s ease;
 	}
 
@@ -193,10 +194,11 @@
 	.thought-bubble {
 		position: absolute;
 		top: 20px;
-		background: white;
+		left: 20px;
+		background: var(--bg-1);
 		padding: 0.75rem 1rem;
-		border-radius: 20px;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		border-radius: 1rem;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 		animation: fadeInBounce 0.5s ease-out;
 		max-width: 250px;
 		text-align: center;
@@ -204,9 +206,8 @@
 
 	.thought-bubble p {
 		margin: 0;
-		font-weight: 600;
-		color: #333;
-		font-size: 0.9rem;
+		font-weight: 500;
+		color: var(--txt-1);
 		line-height: 1.4;
 	}
 
@@ -220,7 +221,7 @@
 		height: 0;
 		border-left: 10px solid transparent;
 		border-right: 10px solid transparent;
-		border-top: 10px solid white;
+		border-top: 10px solid var(--bg-1);
 	}
 
 	@keyframes fadeInBounce {

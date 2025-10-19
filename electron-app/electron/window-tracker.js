@@ -42,44 +42,66 @@ export const getActiveWindowInfo = () => {
 
 /**
  * Classify whether a window is productive or distracting
- * Uses URL-based classification first (if available), then falls back to app-based
+ * Checks patterns against URL and window title, then falls back to app-based classification
  * @param {Object} window - Window object from get-windows
  * @returns {boolean} True if productive, false if distracting
  */
 export const classifyWindow = (window) => {
-	const { owner, url } = window;
+	const { owner, url, title } = window;
 	const appName = owner.name;
-	const { productiveApps, distractingApps, productiveSites, distractingSites, settings } =
+	const windowTitle = title || '';
+	const { productiveApps, distractingApps, productivePatterns, distractingPatterns, settings } =
 		windowTrackerConfig;
 
-	// Check URL-based classification if available
-	if (url && settings.urlOverridesApp) {
-		// First check if it's a productive site
-		if (productiveSites.some((site) => url.includes(site))) {
-			return true; // Explicitly productive site
+	// Check pattern-based classification (URL + title)
+	if (settings.patternsOverrideApp) {
+		const urlLower = url ? url.toLowerCase() : '';
+		const titleLower = windowTitle.toLowerCase();
+
+		// First check if it's a productive pattern
+		const productiveMatch = productivePatterns.find(
+			(pattern) =>
+				urlLower.includes(pattern.toLowerCase()) || titleLower.includes(pattern.toLowerCase())
+		);
+		if (productiveMatch) {
+			const source = urlLower.includes(productiveMatch.toLowerCase()) ? 'URL' : 'title';
+			console.log(`✅ Productive pattern matched via ${source}: "${productiveMatch}"`);
+			return true;
 		}
 
-		// Then check if it's a distracting site
-		if (distractingSites.some((site) => url.includes(site))) {
-			return false; // Distraction detected via URL!
+		// Then check if it's a distracting pattern
+		const distractingMatch = distractingPatterns.find(
+			(pattern) =>
+				urlLower.includes(pattern.toLowerCase()) || titleLower.includes(pattern.toLowerCase())
+		);
+		if (distractingMatch) {
+			const source = urlLower.includes(distractingMatch.toLowerCase()) ? 'URL' : 'title';
+			console.log(`⚠️  Distraction pattern matched via ${source}: "${distractingMatch}"`);
+			return false;
 		}
 
-		// If URL exists but doesn't match any list, consider it productive
-		return true;
+		// If URL exists but doesn't match any pattern, consider it productive
+		if (url) {
+			console.log(`✅ Unknown URL (defaulting to productive): ${url}`);
+			return true;
+		}
 	}
 
 	// Fallback to app-based classification
 	// Check if app is in distraction list
 	if (distractingApps.some((app) => appName.includes(app))) {
+		console.log(`⚠️  Distracting app: ${appName}`);
 		return false;
 	}
 
 	// Check if app is in productive list
 	if (productiveApps.some((app) => appName.includes(app))) {
+		console.log(`✅ Productive app: ${appName}`);
 		return true;
 	}
 
 	// Use default setting for unknown apps
+	console.log(`ℹ️  Unknown app (using default): ${appName}`);
 	return settings.defaultToProductive;
 };
 

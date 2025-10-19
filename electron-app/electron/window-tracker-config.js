@@ -42,6 +42,7 @@ export const windowTrackerConfig = {
 	distractingApps: [
 		'Messages',
 		'Discord',
+		'Vesktop',
 		'Slack',
 		'Instagram',
 		'Twitter',
@@ -57,39 +58,43 @@ export const windowTrackerConfig = {
 	],
 
 	/**
-	 * Website domains considered distracting
-	 * These are checked when you're browsing in any browser
-	 * This is more accurate than app-based detection!
+	 * Patterns for distracting websites/activities
+	 * These patterns are checked against both URLs and window titles (case-insensitive)
+	 * Works for all browsers including Firefox where URL detection may not be available
 	 */
-	distractingSites: [
-		'reddit.com',
-		'twitter.com',
+	distractingPatterns: [
+		'reddit',
+		'twitter',
 		'x.com',
-		'instagram.com',
-		'facebook.com',
-		'youtube.com',
-		'netflix.com',
-		'tiktok.com',
-		'twitch.tv',
-		'discord.com/channels'
+		'instagram',
+		'facebook',
+		'youtube',
+		'netflix',
+		'tiktok',
+		'twitch',
+		'discord',
+		'spotify'
 	],
 
 	/**
-	 * Website domains considered productive
-	 * If a URL matches these, it's always considered productive
-	 * even if other rules might classify it differently
+	 * Patterns for productive websites/activities
+	 * These patterns are checked against both URLs and window titles (case-insensitive)
+	 * If a match is found, the activity is always considered productive
 	 */
-	productiveSites: [
-		'github.com',
-		'stackoverflow.com',
+	productivePatterns: [
+		'github',
+		'stackoverflow',
+		'stack overflow',
 		'docs.',
+		'documentation',
 		'developer.mozilla.org',
+		'mdn web docs',
 		'learn.microsoft.com',
-		'coursera.org',
-		'udemy.com',
-		'codecademy.com',
-		'leetcode.com',
-		'hackerrank.com'
+		'coursera',
+		'udemy',
+		'codecademy',
+		'leetcode',
+		'hackerrank'
 	],
 
 	/**
@@ -100,8 +105,8 @@ export const windowTrackerConfig = {
 		// If false, unknown apps default to distracting
 		defaultToProductive: true,
 
-		// If true, having a URL always takes priority over app classification
-		urlOverridesApp: true,
+		// If true, pattern matching (URL/title) takes priority over app classification
+		patternsOverrideApp: true,
 
 		// Polling interval for active window detection (milliseconds)
 		pollInterval: 500

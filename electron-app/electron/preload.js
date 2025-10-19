@@ -4,7 +4,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
 	// Session control
-	startSession: (taskName) => ipcRenderer.send('start-session', taskName),
+	startSession: (data) => ipcRenderer.send('start-session', data),
+	pauseSession: () => ipcRenderer.send('pause-session'),
+	resumeSession: () => ipcRenderer.send('resume-session'),
 	stopSession: () => ipcRenderer.send('stop-session'),
 	getSessionState: () => ipcRenderer.invoke('get-session-state'),
 
@@ -19,8 +21,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	onSessionStarted: (callback) => {
 		ipcRenderer.on('session-started', (event, data) => callback(data));
 	},
+	onSessionPaused: (callback) => {
+		ipcRenderer.on('session-paused', (event, data) => callback(data));
+	},
+	onSessionResumed: (callback) => {
+		ipcRenderer.on('session-resumed', (event, data) => callback(data));
+	},
 	onSessionStopped: (callback) => {
 		ipcRenderer.on('session-stopped', (event, data) => callback(data));
+	},
+	onSessionUpdated: (callback) => {
+		ipcRenderer.on('session-updated', (event, data) => callback(data));
 	},
 	onDubsStateChange: (callback) => {
 		ipcRenderer.on('dubs-state-change', (event, state) => callback(state));
