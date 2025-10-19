@@ -384,7 +384,7 @@
 		padding: 1.5rem;
 		background: var(--bg-2);
 		border-radius: 1.5rem;
-		border: 2px solid var(--txt-1);
+		border: 1px solid var(--txt-1);
 	}
 
 	.controls-title {
@@ -432,7 +432,7 @@
 
 	.modal {
 		background: var(--bg-1);
-		border: 2px solid var(--txt-1);
+		border: 1px solid var(--txt-1);
 		border-radius: 1.5rem;
 		padding: 2rem;
 		width: 90%;
@@ -469,7 +469,7 @@
 	.task-input {
 		padding: 1rem 1rem;
 		font-size: 1rem;
-		border: 2px solid var(--txt-1);
+		border: 1px solid var(--txt-1);
 		background: var(--bg-1);
 		color: var(--txt-1);
 		border-radius: 1rem;
@@ -510,7 +510,7 @@
 	.stat-card {
 		padding: 1.5rem;
 		background: var(--bg-2);
-		border: 2px solid var(--txt-1);
+		border: 1px solid var(--txt-1);
 		border-radius: 1rem;
 		text-align: center;
 	}
@@ -540,7 +540,7 @@
 	.history-item {
 		padding: 1.25rem;
 		background: var(--bg-2);
-		border: 2px solid var(--txt-1);
+		border: 1px solid var(--txt-1);
 		border-radius: 1rem;
 	}
 
