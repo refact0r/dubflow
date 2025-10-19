@@ -1,17 +1,16 @@
 <script>
+	import SettingsIcon from '~icons/ph/gear-duotone';
+
 	let { children } = $props();
 </script>
 
 <div class="container">
 	<nav class="nav">
-		<h1 class="logo">dubflow</h1>
-		<ul class="nav-links">
-			<li><a href="/">Home</a></li>
-			<li><a href="/#/settings">Settings</a></li>
-		</ul>
+		<a href="/" class="logo">dubflow</a>
+		<a href="/#/settings" class="settings"><SettingsIcon /></a>
 	</nav>
 
-	<main class="content">
+	<main>
 		{@render children()}
 	</main>
 </div>
@@ -39,7 +38,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 1rem 1.5rem 1rem 1rem;
+		padding: 1rem 1.5rem;
 		z-index: 1;
 	}
 
@@ -49,23 +48,18 @@
 		font-size: 2.5rem;
 	}
 
-	.nav-links {
-		display: flex;
-		list-style: none;
-		gap: 2rem;
-		margin: 0;
-		padding: 0;
+	.settings {
+		font-size: 1.5rem;
+		padding: 0.5rem;
 	}
 
-	.nav-links a {
-		text-decoration: none;
-		color: var(--txt-1);
-		font-weight: 600;
+	.settings:hover {
+		opacity: 0.7;
 	}
 
-	.content {
+	main {
 		flex: 1;
 		z-index: 1;
-		padding: 1rem;
+		padding: 2rem;
 	}
 </style>

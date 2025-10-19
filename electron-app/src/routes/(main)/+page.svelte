@@ -11,7 +11,7 @@
 	];
 
 	let currentTime = $state(1650); // 27.5 minutes
-	let taskName = $state('Deep work - Design mockups');
+	let taskName = $state('Study unit 5 for the calculus midterm!');
 
 	function formatTime(seconds) {
 		const mins = Math.floor(seconds / 60);
@@ -21,99 +21,119 @@
 </script>
 
 <div class="container">
-	<div class="timer">
-		<h1>{taskName}</h1>
-		<div class="time">
-			{formatTime(currentTime)} / {formatTime(sessionDuration)}
-		</div>
-		<div class="buttons">
-			<button>Pause</button>
-			<button>End</button>
+	<div class="left">
+		<div class="timer">
+			<div class="time">12:34</div>
+			<div class="buttons">
+				<button class="text">Pause</button>
+				<button class="text">End</button>
+			</div>
 		</div>
 	</div>
 
-	<div class="timeline">
-		<h2>Timeline</h2>
-		<div class="bar">
-			{#each events as event}
-				<div
-					class="segment {event.type}"
-					style="left: {(event.start / sessionDuration) * 100}%; width: {(event.duration /
-						sessionDuration) *
-						100}%;"
-				></div>
-			{/each}
-			<div class="indicator" style="left: {(currentTime / sessionDuration) * 100}%;"></div>
+	<div class="right">
+		<h2 class="task-name">{taskName}</h2>
+		<div class="timeline">
+			<div class="bar">
+				{#each events as event}
+					<div
+						class="segment {event.type}"
+						style="left: {(event.start / sessionDuration) * 100}%; width: {(event.duration /
+							sessionDuration) *
+							100}%;"
+					></div>
+				{/each}
+				<div class="indicator" style="left: {(currentTime / sessionDuration) * 100}%;"></div>
+			</div>
+			<div class="time-labels">
+				<span class="time-label">00:00</span>
+				<span class="time-label">30:00</span>
+			</div>
 		</div>
 	</div>
 </div>
 
 <style>
 	.container {
-		padding: 2rem;
-		max-width: 800px;
 		margin: 0 auto;
+		display: flex;
+		gap: 3rem;
+	}
+
+	.left {
+		width: 100%;
+		max-width: 18rem;
+	}
+	.right {
+		width: 100%;
 	}
 
 	.timer {
-		margin-bottom: 3rem;
-		text-align: center;
+		margin-bottom: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
-	.timer h1 {
-		font-size: 1.5rem;
-		margin-bottom: 1rem;
+	.task-name {
+		margin: 1rem 0 2rem 0;
+		font-size: 2rem;
+		font-weight: 500;
 	}
 
 	.time {
-		font-size: 3rem;
-		font-weight: bold;
-		margin: 1rem 0;
+		font-size: 8rem;
+		font-family: 'PPMondwest', sans-serif;
+		margin: 0;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.buttons {
 		display: flex;
 		gap: 1rem;
-		justify-content: center;
-		margin-top: 1rem;
 	}
 
-	button {
-		padding: 0.5rem 1.5rem;
-		border: 1px solid var(--txt-3);
-		background: white;
-		border-radius: 4px;
-		cursor: pointer;
+	.buttons button {
+		width: 100%;
 	}
 
-	button:hover {
-		background: var(--bg-2);
+	.timeline {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
-	.timeline h2 {
-		font-size: 1.2rem;
-		margin-bottom: 1rem;
+	.time-labels {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 0.5rem;
+	}
+
+	.time-label {
+		font-size: 1.25rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--txt-2);
 	}
 
 	.bar {
 		position: relative;
-		height: 40px;
+		height: 2rem;
 		background: var(--bg-2);
-		border-radius: 4px;
 	}
 
 	.segment {
 		position: absolute;
 		height: 100%;
-		border-radius: 4px;
+		/* border: 2px solid var(--txt-1); */
+		/* border-radius: 0.5rem; */
 	}
 
 	.focus {
-		background: #22c55e;
+		background: var(--acc-1);
 	}
 
 	.distraction {
-		background: #f59e0b;
+		background: var(--alt-1);
 	}
 
 	.current {
