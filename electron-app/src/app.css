@@ -44,7 +44,7 @@ button {
 button.text {
 	padding: 1rem 1.5rem;
 	border: none;
-	border: 2px solid var(--txt-1);
+	border: 1px solid var(--txt-1);
 	background: var(--acc-1);
 	transform: translate(-2px, -2px);
 	box-shadow: 2px 2px 0px 0px var(--txt-1);
