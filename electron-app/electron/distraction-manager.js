@@ -390,16 +390,34 @@ export class DistractionManager extends EventEmitter {
 
 	/**
 	 * Check if phone is detected in Rekognition data
-	 * @param {Object} rekognitionData - Rekognition data
+	 * @param {Object|string} rekognitionData - Rekognition data (string or object)
 	 * @returns {boolean} True if phone detected
 	 */
 	checkForPhone(rekognitionData) {
-		if (!rekognitionData || !rekognitionData.scene_analysis) {
+		if (!rekognitionData) {
 			return false;
 		}
 
-		const labels = rekognitionData.scene_analysis.labels || [];
-		const distractionObjects = rekognitionData.scene_analysis.distraction_objects || [];
+		// Parse if it's a JSON string
+		let parsedData = rekognitionData;
+		if (typeof rekognitionData === 'string') {
+			try {
+				parsedData = JSON.parse(rekognitionData);
+			} catch (error) {
+				console.error('❌ Failed to parse Rekognition data:', error.message);
+				return false;
+			}
+		}
+
+		if (!parsedData.scene_analysis) {
+			return false;
+		}
+
+		const labels = parsedData.scene_analysis.labels || [];
+		const distractionObjects = parsedData.scene_analysis.distraction_objects || [];
+
+		//console.log("Checking for phone in labels:", labels);
+		//console.log("Checking for phone in objects:", distractionObjects);
 
 		// Check in labels
 		const hasPhoneInLabels = labels.some(
@@ -411,7 +429,10 @@ export class DistractionManager extends EventEmitter {
 			(obj) => obj.object && obj.object.toLowerCase().includes('phone')
 		);
 
-		return hasPhoneInLabels || hasPhoneInObjects;
+		const phoneDetected = hasPhoneInLabels || hasPhoneInObjects;
+		console.log(`📱 Phone detection result: ${phoneDetected}`);
+
+		return phoneDetected;
 	}
 
 	/**
