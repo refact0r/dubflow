@@ -32,7 +32,7 @@
 		pointer-events: none;
 		background: var(--txt-1);
 		filter: url(#noiseFilter);
-		opacity: 0.3;
+		opacity: 0.4;
 	}
 
 	.nav {
