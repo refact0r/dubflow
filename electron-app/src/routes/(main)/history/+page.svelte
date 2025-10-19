@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 
 	let allSessions = $state([]);
+	let historyTooltip = $state(null); // { source: string, x: number, y: number }
 
 	// Load all sessions on mount
 	onMount(async () => {
@@ -20,19 +21,61 @@
 	}
 
 	/**
+	 * Format source name for display in tooltip
+	 * @param {string} source - Source identifier
+	 * @returns {string} Formatted source name
+	 */
+	function formatSourceName(source) {
+		if (!source) return 'Unknown';
+
+		const sourceMap = {
+			window_tracker: 'Digital Distraction',
+			eye_tracker: 'Physical Distraction',
+			session_start: 'Session Start',
+			refocus: 'Refocus',
+			emergency_stop: 'Emergency Stop'
+		};
+
+		return sourceMap[source] || source.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+	}
+
+	/**
+	 * Handle mouse enter on distracted segment
+	 * @param {MouseEvent} event - Mouse event
+	 * @param {string} source - Distraction source
+	 */
+	function handleSegmentMouseEnter(event, source) {
+		if (!source) return;
+
+		const rect = event.currentTarget.getBoundingClientRect();
+		historyTooltip = {
+			source: formatSourceName(source),
+			x: rect.left + rect.width / 2,
+			y: rect.top
+		};
+	}
+
+	/**
+	 * Handle mouse leave on segment
+	 */
+	function handleSegmentMouseLeave() {
+		historyTooltip = null;
+	}
+
+	/**
 	 * Get timeline segments for a completed session
 	 * @param {Object} session - Completed session object
-	 * @returns {Array} Array of segments with {state, widthPercent}
+	 * @returns {Array} Array of segments with {state, widthPercent, source}
 	 */
 	function getHistorySegments(session) {
 		const history = session.focusStateHistory;
 		if (!history || history.length === 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		const actualDuration = Math.floor((session.endTime - session.startTime) / 1000); // in seconds
 		if (actualDuration <= 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		const segments = [];
@@ -54,12 +97,13 @@
 
 			segments.push({
 				state: event.state,
-				widthPercent: Math.max(0.1, widthPercent)
+				widthPercent: Math.max(0.1, widthPercent),
+				source: event.source || null
 			});
 		}
 
 		if (segments.length === 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		return segments;
@@ -106,7 +150,24 @@
 						</div>
 						<div class="focus-bar">
 							{#each getHistorySegments(session) as segment}
-								<div class="segment {segment.state}" style="width: {segment.widthPercent}%;"></div>
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+								<div
+									class="segment {segment.state} {segment.state === 'distracted' && segment.source
+										? 'hoverable'
+										: ''}"
+									style="width: {segment.widthPercent}%;"
+									onmouseenter={(e) =>
+										segment.state === 'distracted' && segment.source
+											? handleSegmentMouseEnter(e, segment.source)
+											: null}
+									onmouseleave={() =>
+										segment.state === 'distracted' && segment.source
+											? handleSegmentMouseLeave()
+											: null}
+									role={segment.state === 'distracted' && segment.source ? 'button' : undefined}
+									tabindex={segment.state === 'distracted' && segment.source ? 0 : undefined}
+								></div>
 							{/each}
 						</div>
 						<div class="history-footer">
@@ -129,6 +190,13 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Tooltip for history sessions - rendered outside container to avoid overflow clipping -->
+{#if historyTooltip}
+	<div class="tooltip" style="left: {historyTooltip.x}px; top: {historyTooltip.y}px;">
+		{historyTooltip.source}
+	</div>
+{/if}
 
 <style>
 	.container {
@@ -256,8 +324,28 @@
 		background: var(--alt-1);
 	}
 
-	.history-score {
-		color: var(--txt-2);
+	.focus-bar .segment.hoverable {
+		cursor: pointer;
+	}
+
+	.focus-bar .segment.hoverable:hover {
+		background: var(--alt-2);
+	}
+
+	.tooltip {
+		position: fixed;
+		transform: translate(-50%, -100%);
+		margin-top: -8px;
+		padding: 0.5rem 0.75rem;
+		background: var(--bg-1);
+		border: 1px solid var(--txt-1);
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		color: var(--txt-1);
+		white-space: nowrap;
+		pointer-events: none;
+		z-index: 100;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 	}
 
 	.history-timestamp {

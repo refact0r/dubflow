@@ -61,7 +61,7 @@ const createDashboardWindow = () => {
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
 		mainWindow.webContents.on('did-frame-finish-load', () => {
-			mainWindow.webContents.openDevTools({ mode: 'detach' });
+			// mainWindow.webContents.openDevTools({ mode: 'detach' });
 		});
 	} else {
 		mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));

@@ -11,10 +11,70 @@
 	let overlayVisible = $state(true); // Track overlay visibility state
 	let audioEnabled = $state(true); // Track audio enabled state
 
+	// Tooltip state for timelines
+	let activeTooltip = $state(null); // { source: string, x: number, y: number, type: 'active' | 'recent' | 'history' }
+	let recentTooltip = $state(null); // Separate state for recent sessions tooltips
+
 	function formatTime(seconds) {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
 		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+	}
+
+	/**
+	 * Format source name for display in tooltip
+	 * @param {string} source - Source identifier
+	 * @returns {string} Formatted source name
+	 */
+	function formatSourceName(source) {
+		if (!source) return 'Unknown';
+
+		const sourceMap = {
+			window_tracker: 'Digital Distraction',
+			eye_tracker: 'Physical Distraction',
+			session_start: 'Session Start',
+			refocus: 'Refocus',
+			emergency_stop: 'Emergency Stop'
+		};
+
+		return sourceMap[source] || source.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+	}
+
+	/**
+	 * Handle mouse enter on distracted segment
+	 * @param {MouseEvent} event - Mouse event
+	 * @param {string} source - Distraction source
+	 * @param {string} type - Timeline type ('active' or 'recent')
+	 */
+	function handleSegmentMouseEnter(event, source, type = 'active') {
+		if (!source) return;
+
+		const rect = event.currentTarget.getBoundingClientRect();
+		if (type === 'active') {
+			activeTooltip = {
+				source: formatSourceName(source),
+				x: rect.left + rect.width / 2,
+				y: rect.top
+			};
+		} else if (type === 'recent') {
+			recentTooltip = {
+				source: formatSourceName(source),
+				x: rect.left + rect.width / 2,
+				y: rect.top
+			};
+		}
+	}
+
+	/**
+	 * Handle mouse leave on segment
+	 * @param {string} type - Timeline type ('active' or 'recent')
+	 */
+	function handleSegmentMouseLeave(type = 'active') {
+		if (type === 'active') {
+			activeTooltip = null;
+		} else if (type === 'recent') {
+			recentTooltip = null;
+		}
 	}
 
 	/**
@@ -52,17 +112,17 @@
 	/**
 	 * Get timeline segments for a completed session
 	 * @param {Object} session - Completed session object
-	 * @returns {Array} Array of segments with {state, widthPercent}
+	 * @returns {Array} Array of segments with {state, widthPercent, source}
 	 */
 	function getHistorySegments(session) {
 		const history = session.focusStateHistory;
 		if (!history || history.length === 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		const actualDuration = Math.floor((session.endTime - session.startTime) / 1000); // in seconds
 		if (actualDuration <= 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		const segments = [];
@@ -84,12 +144,13 @@
 
 			segments.push({
 				state: event.state,
-				widthPercent: Math.max(0.1, widthPercent)
+				widthPercent: Math.max(0.1, widthPercent),
+				source: event.source || null
 			});
 		}
 
 		if (segments.length === 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		return segments;
@@ -98,16 +159,16 @@
 	/**
 	 * Convert focus state history into timeline segments for visualization
 	 * Uses elapsedTime from events which accounts for pauses
-	 * @returns {Array} Array of segments with {state, widthPercent}
+	 * @returns {Array} Array of segments with {state, widthPercent, source}
 	 */
 	function getTimelineSegments() {
 		if (!sessionStore.isActive || sessionStore.duration === 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		const history = sessionStore.focusStateHistory;
 		if (!history || history.length === 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		const sessionDuration = sessionStore.duration; // Total duration in seconds
@@ -116,7 +177,7 @@
 
 		// If no time has elapsed yet, show default focused state
 		if (currentElapsed <= 0) {
-			return [{ state: 'focused', widthPercent: 100 }];
+			return [{ state: 'focused', widthPercent: 100, source: null }];
 		}
 
 		const segments = [];
@@ -142,13 +203,16 @@
 
 			segments.push({
 				state: event.state,
-				widthPercent: Math.max(0.1, widthPercent) // Minimum 0.1% to be visible
+				widthPercent: Math.max(0.1, widthPercent), // Minimum 0.1% to be visible
+				source: event.source || null
 			});
 		}
 
 		// If no segments created, default to focused
 		if (segments.length === 0) {
-			return [{ state: 'focused', widthPercent: (currentElapsed / sessionDuration) * 100 }];
+			return [
+				{ state: 'focused', widthPercent: (currentElapsed / sessionDuration) * 100, source: null }
+			];
 		}
 
 		return segments;
@@ -298,7 +362,24 @@
 				{#if sessionStore.isActive && sessionStore.duration > 0}
 					<!-- Render colored segments based on focus state history -->
 					{#each getTimelineSegments() as segment}
-						<div class="segment {segment.state}" style="width: {segment.widthPercent}%;"></div>
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+						<div
+							class="segment {segment.state} {segment.state === 'distracted' && segment.source
+								? 'hoverable'
+								: ''}"
+							style="width: {segment.widthPercent}%;"
+							onmouseenter={(e) =>
+								segment.state === 'distracted' && segment.source
+									? handleSegmentMouseEnter(e, segment.source, 'active')
+									: null}
+							onmouseleave={() =>
+								segment.state === 'distracted' && segment.source
+									? handleSegmentMouseLeave('active')
+									: null}
+							role={segment.state === 'distracted' && segment.source ? 'button' : undefined}
+							tabindex={segment.state === 'distracted' && segment.source ? 0 : undefined}
+						></div>
 					{/each}
 					<!-- Current time indicator -->
 					<div
@@ -318,6 +399,11 @@
 					>{sessionStore.duration > 0 ? formatTime(sessionStore.duration) : '00:00'}</span
 				>
 			</div>
+			{#if activeTooltip}
+				<div class="tooltip" style="left: {activeTooltip.x}px; top: {activeTooltip.y}px;">
+					{activeTooltip.source}
+				</div>
+			{/if}
 		</div>
 
 		<!-- Daily Stats Section -->
@@ -353,7 +439,10 @@
 
 		<!-- Session History Section -->
 		<div class="session-history">
-			<h3 class="section-title">Recent Sessions</h3>
+			<div class="section-header">
+				<h3 class="section-title">Recent Sessions</h3>
+				<a href="/#/history" class="see-all-link">See All</a>
+			</div>
 			{#if sessionHistoryStore.recentSessions.length > 0}
 				<div class="history-list">
 					{#each sessionHistoryStore.recentSessions as session (session.id)}
@@ -364,9 +453,23 @@
 							</div>
 							<div class="focus-bar">
 								{#each getHistorySegments(session) as segment}
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 									<div
-										class="segment {segment.state}"
+										class="segment {segment.state} {segment.state === 'distracted' && segment.source
+											? 'hoverable'
+											: ''}"
 										style="width: {segment.widthPercent}%;"
+										onmouseenter={(e) =>
+											segment.state === 'distracted' && segment.source
+												? handleSegmentMouseEnter(e, segment.source, 'recent')
+												: null}
+										onmouseleave={() =>
+											segment.state === 'distracted' && segment.source
+												? handleSegmentMouseLeave('recent')
+												: null}
+										role={segment.state === 'distracted' && segment.source ? 'button' : undefined}
+										tabindex={segment.state === 'distracted' && segment.source ? 0 : undefined}
 									></div>
 								{/each}
 							</div>
@@ -391,6 +494,13 @@
 		</div>
 	</div>
 </div>
+
+<!-- Tooltip for recent sessions - rendered outside container to avoid overflow clipping -->
+{#if recentTooltip}
+	<div class="tooltip" style="left: {recentTooltip.x}px; top: {recentTooltip.y}px;">
+		{recentTooltip.source}
+	</div>
+{/if}
 
 {#if showModal}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -573,6 +683,30 @@
 		background: var(--alt-1);
 	}
 
+	.segment.hoverable {
+		cursor: pointer;
+	}
+
+	.segment.hoverable:hover {
+		background: var(--alt-2);
+	}
+
+	.tooltip {
+		position: fixed;
+		transform: translate(-50%, -100%);
+		margin-top: -8px;
+		padding: 0.5rem 0.75rem;
+		background: var(--bg-1);
+		border: 1px solid var(--txt-1);
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		color: var(--txt-1);
+		white-space: nowrap;
+		pointer-events: none;
+		z-index: 100;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
+
 	.indicator {
 		position: absolute;
 		width: 2px;
@@ -711,6 +845,28 @@
 		font-family: 'PPMondwest', sans-serif;
 	}
 
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1rem;
+	}
+
+	.section-header .section-title {
+		margin: 0;
+	}
+
+	.see-all-link {
+		color: var(--txt-3);
+		text-decoration: none;
+		transition: opacity 0.2s ease;
+		margin-right: 0.25rem;
+	}
+
+	.see-all-link:hover {
+		opacity: 0.7;
+	}
+
 	.stats-grid {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
@@ -772,6 +928,11 @@
 		margin-top: 0.75rem;
 	}
 
+	.history-timestamp {
+		font-size: 0.875rem;
+		color: var(--txt-2);
+	}
+
 	.history-time {
 		font-size: 0.875rem;
 		color: var(--txt-2);
@@ -791,6 +952,7 @@
 
 	.focus-bar .segment {
 		height: 100%;
+		transition: width 0.3s ease;
 		border-right: 1px solid var(--txt-1);
 	}
 
@@ -806,25 +968,22 @@
 		background: var(--alt-1);
 	}
 
+	.focus-bar .segment.hoverable {
+		cursor: pointer;
+	}
+
+	.focus-bar .segment.hoverable:hover {
+		background: var(--alt-2);
+	}
+
+	.focus-fill {
+		height: 100%;
+		background: var(--acc-1);
+		transition: width 0.3s ease;
+	}
+
 	.history-score {
-		color: var(--txt-2);
-	}
-
-	.history-timestamp {
-		font-size: 0.875rem;
-		color: var(--txt-2);
-	}
-
-	.empty-state {
-		padding: 2rem;
-		text-align: center;
-		color: var(--txt-2);
-		background: var(--bg-2);
-		border: 1px solid var(--txt-1);
-		border-radius: 1rem;
-	}
-
-	.empty-state p {
-		margin: 0;
+		min-width: 4rem;
+		text-align: right;
 	}
 </style>
