@@ -11,6 +11,7 @@ export class SessionStore {
 	startTime = $state(null);
 	elapsedTime = $state(0);
 	remainingTime = $state(0);
+	focusStateHistory = $state([]);
 
 	constructor() {
 		// Set up IPC listeners if in Electron environment
@@ -23,18 +24,21 @@ export class SessionStore {
 				this.startTime = data.startTime;
 				this.elapsedTime = data.elapsedTime;
 				this.remainingTime = data.remainingTime;
+				this.focusStateHistory = data.focusStateHistory || [];
 			});
 
 			window.electronAPI.onSessionPaused((data) => {
 				this.isPaused = data.isPaused;
 				this.elapsedTime = data.elapsedTime;
 				this.remainingTime = data.remainingTime;
+				this.focusStateHistory = data.focusStateHistory || [];
 			});
 
 			window.electronAPI.onSessionResumed((data) => {
 				this.isPaused = data.isPaused;
 				this.elapsedTime = data.elapsedTime;
 				this.remainingTime = data.remainingTime;
+				this.focusStateHistory = data.focusStateHistory || [];
 			});
 
 			window.electronAPI.onSessionStopped((data) => {
@@ -42,11 +46,13 @@ export class SessionStore {
 				this.isPaused = data.isPaused;
 				this.elapsedTime = data.elapsedTime;
 				this.remainingTime = data.remainingTime;
+				this.focusStateHistory = data.focusStateHistory || [];
 			});
 
 			window.electronAPI.onSessionUpdated((data) => {
 				this.elapsedTime = data.elapsedTime;
 				this.remainingTime = data.remainingTime;
+				this.focusStateHistory = data.focusStateHistory || [];
 			});
 
 			// Load initial state
@@ -64,6 +70,7 @@ export class SessionStore {
 			this.startTime = state.startTime;
 			this.elapsedTime = state.elapsedTime;
 			this.remainingTime = state.remainingTime;
+			this.focusStateHistory = state.focusStateHistory || [];
 		}
 	}
 

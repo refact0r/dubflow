@@ -34,6 +34,11 @@ export class DistractionManager extends EventEmitter {
 		this.currentWindowInfo = null;
 		this.lastTriggerSource = null;
 
+		// Focus state tracking
+		this.currentFocusState = 'focused'; // 'focused' or 'distracted'
+		this.focusStateHistory = []; // Array of {timestamp, state, source} events
+		this.thresholdReached = false; // Track if threshold was reached (user is actively distracted)
+
 		// Configuration
 		this.DISTRACTION_THRESHOLD = 1000; // 2 seconds in milliseconds
 		this.CHECK_INTERVAL = 500; // Check every 500 milliseconds
@@ -119,8 +124,14 @@ export class DistractionManager extends EventEmitter {
 
 		// Stop any ongoing timer
 		if (this.distractionStartTime) {
-			console.log('⏹️ Stopping distraction timer');
+			console.log('⏹️ Stopping distraction timer (before threshold)');
 			this.distractionStartTime = null;
+		}
+
+		// If threshold was reached, log refocus
+		if (this.thresholdReached) {
+			this.logStateChange('focused', source);
+			this.thresholdReached = false;
 		}
 
 		// Clear any check intervals
@@ -138,6 +149,36 @@ export class DistractionManager extends EventEmitter {
 		this.broadcastRefocus();
 
 		console.log('✅ Immediate refocus handled - dog animation should stop');
+	}
+
+	/**
+	 * Log a focus state change event
+	 * @param {string} newState - New state ('focused' or 'distracted')
+	 * @param {string} source - Source that triggered the change
+	 */
+	logStateChange(newState, source) {
+		if (this.currentFocusState !== newState) {
+			// Get current session elapsed time (in seconds) from session manager
+			const sessionState = this.sessionManager ? this.sessionManager.getState() : null;
+			const elapsedSeconds = sessionState ? sessionState.elapsedTime : 0;
+
+			const event = {
+				timestamp: Date.now(), // Absolute timestamp for reference
+				elapsedTime: elapsedSeconds, // Session elapsed time in seconds
+				state: newState,
+				source: source
+			};
+			this.focusStateHistory.push(event);
+			this.currentFocusState = newState;
+			console.log(
+				`📊 Focus state changed to: ${newState} at ${elapsedSeconds}s (source: ${source})`
+			);
+
+			// Notify session manager of state change
+			if (this.sessionManager && this.sessionManager.updateFocusHistory) {
+				this.sessionManager.updateFocusHistory(this.focusStateHistory);
+			}
+		}
 	}
 
 	/**
@@ -169,10 +210,15 @@ export class DistractionManager extends EventEmitter {
 			console.log('🚨 Starting distraction timer!');
 			this.startTimer();
 		} else if (!isDistracted && this.distractionStartTime) {
-			// User is focused again, reset timer (hard reset)
-			
-			console.log('✅ User refocused, resetting timer');
+			// User is focused again before threshold, reset timer (hard reset)
+			console.log('✅ User refocused before threshold, resetting timer');
 			this.resetTimer();
+			this.broadcastRefocus();
+		} else if (!isDistracted && this.thresholdReached) {
+			// User refocused after threshold was reached, log state change
+			console.log('✅ User refocused after distraction');
+			this.logStateChange('focused', 'refocus');
+			this.thresholdReached = false;
 			this.broadcastRefocus();
 		}
 	}
@@ -198,10 +244,7 @@ export class DistractionManager extends EventEmitter {
 	 */
 	resetTimer() {
 		if (this.distractionStartTime) {
-			console.log('✅ User refocused, timer reset');
-
-			// Broadcast refocus event to reset dog's state
-			this.broadcastRefocus();
+			console.log('✅ Timer reset (before threshold)');
 		}
 
 		this.distractionStartTime = null;
@@ -281,6 +324,15 @@ export class DistractionManager extends EventEmitter {
 	 * Executes the full alert flow
 	 */
 	async handleDistractionThreshold() {
+		// Log state change to distracted (threshold reached)
+		const source = this.lastTriggerSource || 'unknown';
+		if (this.currentFocusState === 'focused') {
+			this.logStateChange('distracted', source);
+		}
+
+		// Set flag to indicate threshold was reached
+		this.thresholdReached = true;
+
 		// Reset timer first to prevent multiple triggers
 		this.resetTimer();
 
@@ -495,10 +547,26 @@ export class DistractionManager extends EventEmitter {
 		this.lastTriggerSource = null;
 		this.currentWindowInfo = null;
 
+		// Log focus state change if needed
+		if (this.currentFocusState === 'distracted') {
+			this.logStateChange('focused', 'emergency_stop');
+		}
+
+		// Reset threshold flag
+		this.thresholdReached = false;
+
 		// Immediately broadcast refocus to stop dog animation
 		this.broadcastRefocus();
 
 		console.log('✅ Emergency stop complete - dog should be sleeping');
+	}
+
+	/**
+	 * Get focus state history
+	 * @returns {Array} Array of focus state events
+	 */
+	getFocusStateHistory() {
+		return this.focusStateHistory;
 	}
 
 	/**
@@ -511,6 +579,9 @@ export class DistractionManager extends EventEmitter {
 		this.distractionStartTime = null;
 		this.lastTriggerSource = null;
 		this.currentWindowInfo = null;
+		this.currentFocusState = 'focused';
+		this.focusStateHistory = [];
+		this.thresholdReached = false;
 
 		if (this.checkInterval) {
 			clearInterval(this.checkInterval);

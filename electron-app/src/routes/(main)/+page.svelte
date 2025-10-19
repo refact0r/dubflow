@@ -17,6 +17,83 @@
 		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 	}
 
+	/**
+	 * Convert focus state history into timeline segments for visualization
+	 * Uses elapsedTime from events which accounts for pauses
+	 * @returns {Array} Array of segments with {state, widthPercent}
+	 */
+	function getTimelineSegments() {
+		if (!sessionStore.isActive || sessionStore.duration === 0) {
+			return [{ state: 'focused', widthPercent: 100 }];
+		}
+
+		const history = sessionStore.focusStateHistory;
+		if (!history || history.length === 0) {
+			return [{ state: 'focused', widthPercent: 100 }];
+		}
+
+		const sessionDuration = sessionStore.duration; // Total duration in seconds
+		// Use displayTime for smooth updates (synced with RAF loop)
+		const currentElapsed = sessionStore.duration - displayTime; // Current elapsed time in seconds
+
+		// If no time has elapsed yet, show default focused state
+		if (currentElapsed <= 0) {
+			return [{ state: 'focused', widthPercent: 100 }];
+		}
+
+		const segments = [];
+		let totalCoveredTime = 0; // Track how much time we've covered with segments
+
+		for (let i = 0; i < history.length; i++) {
+			const event = history[i];
+			const nextEvent = history[i + 1];
+
+			// Use elapsedTime from events (accounts for pauses)
+			let segmentStart = event.elapsedTime || 0;
+			let segmentEnd = nextEvent ? nextEvent.elapsedTime || 0 : currentElapsed;
+
+			// Ensure segment end doesn't exceed current elapsed time
+			segmentEnd = Math.min(segmentEnd, currentElapsed);
+
+			// Ensure segment start isn't beyond current time
+			if (segmentStart > currentElapsed) {
+				break;
+			}
+
+			// Calculate duration of this segment in seconds
+			const segmentDuration = segmentEnd - segmentStart;
+
+			// Skip zero or negative duration segments (except for the last one)
+			if (segmentDuration <= 0 && nextEvent) {
+				continue;
+			}
+
+			// For the last segment, ensure it has at least some minimal duration
+			const finalDuration = !nextEvent ? Math.max(segmentDuration, 0.1) : segmentDuration;
+
+			if (finalDuration <= 0) {
+				continue;
+			}
+
+			totalCoveredTime += finalDuration;
+
+			// Calculate percentage of TOTAL SESSION DURATION
+			const widthPercent = (finalDuration / sessionDuration) * 100;
+
+			segments.push({
+				state: event.state,
+				widthPercent: Math.max(0.1, widthPercent) // Minimum 0.1% to be visible
+			});
+		}
+
+		// If no segments created, default to focused
+		if (segments.length === 0) {
+			return [{ state: 'focused', widthPercent: (currentElapsed / sessionDuration) * 100 }];
+		}
+
+		return segments;
+	}
+
 	function openModal() {
 		modalTaskName = '';
 		modalDuration = 25; // Reset to default
@@ -152,14 +229,19 @@
 		<h2 class="task-name">{sessionStore.taskName || 'No active task'}</h2>
 		<div class="timeline">
 			<div class="bar">
-				<!-- Timeline visualization will be populated with real data later -->
 				{#if sessionStore.isActive && sessionStore.duration > 0}
+					<!-- Render colored segments based on focus state history -->
+					{#each getTimelineSegments() as segment}
+						<div class="segment {segment.state}" style="width: {segment.widthPercent}%;"></div>
+					{/each}
+					<!-- Current time indicator -->
 					<div
 						class="indicator"
-						style="left: {((sessionStore.duration - sessionStore.remainingTime) /
-							sessionStore.duration) *
-							100}%;"
+						style="left: {((sessionStore.duration - displayTime) / sessionStore.duration) * 100}%;"
 					></div>
+				{:else}
+					<!-- Default state when no session is active -->
+					<div class="segment focused" style="width: 100%;"></div>
 				{/if}
 			</div>
 			<div class="time-labels">
@@ -265,6 +347,12 @@
 			/>
 			<div class="duration-selector">
 				<button
+					class="duration-btn text {modalDuration === 2 ? 'selected' : ''}"
+					onclick={() => selectDuration(2)}
+				>
+					2 min
+				</button>
+				<button
 					class="duration-btn text {modalDuration === 25 ? 'selected' : ''}"
 					onclick={() => selectDuration(25)}
 				>
@@ -363,14 +451,33 @@
 		position: relative;
 		height: 2rem;
 		background: var(--bg-2);
+		border-radius: 1rem;
+		border: 1px solid var(--txt-1);
+		display: flex;
+		overflow: hidden;
+	}
+
+	.segment {
+		height: 100%;
+		flex-shrink: 0;
+	}
+
+	.segment.focused {
+		background: var(--acc-1);
+	}
+
+	.segment.distracted {
+		background: var(--alt-1);
 	}
 
 	.indicator {
 		position: absolute;
 		width: 2px;
-		height: 100%;
+		height: 150%;
+		border-radius: 1rem;
 		background: var(--txt-1);
-		transform: translateX(-50%);
+		transform: translateX(-50%) translateY(-17.5%);
+		z-index: 10;
 	}
 
 	.start-session {

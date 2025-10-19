@@ -12,7 +12,8 @@ export class SessionManager {
 			duration: 0, // Total session duration in seconds
 			startTime: null, // Timestamp when session started
 			pausedAt: null, // Timestamp when paused, null if not paused
-			totalPausedTime: 0 // Accumulated milliseconds spent paused
+			totalPausedTime: 0, // Accumulated milliseconds spent paused
+			focusStateHistory: [] // Array of focus state change events
 		};
 		this.windows = new Set(); // Store window references
 		this.distractionManager = null; // Reference to distraction manager
@@ -82,7 +83,15 @@ export class SessionManager {
 			duration: durationMinutes * 60, // Convert to seconds
 			startTime: Date.now(),
 			pausedAt: null,
-			totalPausedTime: 0
+			totalPausedTime: 0,
+			focusStateHistory: [
+				{
+					timestamp: Date.now(),
+					elapsedTime: 0, // Session just started
+					state: 'focused',
+					source: 'session_start'
+				}
+			]
 		};
 
 		// Start interval to check if time is up (check every second)
@@ -193,6 +202,16 @@ export class SessionManager {
 	}
 
 	/**
+	 * Update focus state history from distraction manager
+	 * @param {Array} history - Array of focus state events
+	 */
+	updateFocusHistory(history) {
+		this.state.focusStateHistory = [...history];
+		// Broadcast updated state to frontend
+		this.broadcast('session-updated', this.getState());
+	}
+
+	/**
 	 * Get current session state with computed values
 	 * @returns {Object} Current session state
 	 */
@@ -217,7 +236,8 @@ export class SessionManager {
 			duration: this.state.duration,
 			startTime: this.state.startTime,
 			elapsedTime,
-			remainingTime
+			remainingTime,
+			focusStateHistory: this.state.focusStateHistory
 		};
 	}
 
