@@ -74,6 +74,14 @@ export const setupIPCHandlers = ({
 		}
 	});
 
+	// Audio Settings Management
+	ipcMain.on('set-audio-enabled', (event, enabled) => {
+		const overlayWindow = getOverlayWindow();
+		if (overlayWindow && !overlayWindow.isDestroyed()) {
+			overlayWindow.webContents.send('audio-settings-change', enabled);
+		}
+	});
+
 	// Distraction Alert Handler
 	ipcMain.on('distraction-alert', (event, alertPackage) => {
 		const overlayWindow = getOverlayWindow();
@@ -119,6 +127,7 @@ export const cleanupIPCHandlers = () => {
 	ipcMain.removeAllListeners('stop-session');
 	ipcMain.removeAllListeners('toggle-overlay');
 	ipcMain.removeAllListeners('set-dubs-state');
+	ipcMain.removeAllListeners('set-audio-enabled');
 	ipcMain.removeAllListeners('emergency-stop-distraction');
 	ipcMain.removeHandler('get-session-state');
 	console.log('🧹 IPC handlers cleaned up');

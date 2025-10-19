@@ -5,6 +5,7 @@
 	let animationTimeout = null;
 	let currentMessage = $state('');
 	let isDogAwake = $state(false); // Track if dog is currently awake/barking
+	let audioEnabled = $state(true); // Track if audio is enabled
 
 	const ANIMATION_DELAY = (3 / 7) * 1000; // Animation timing (~571ms)
 
@@ -41,6 +42,12 @@
 	 * @param {string} base64Data - Base64 encoded audio data
 	 */
 	function playAudio(base64Data) {
+		// Check if audio is enabled before playing
+		if (!audioEnabled) {
+			console.log('🔇 Audio is disabled, skipping playback');
+			return;
+		}
+
 		try {
 			// Convert base64 to audio buffer
 			const audioData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
@@ -137,6 +144,17 @@
 			console.error('❌ electronAPI.onUserRefocused not available');
 		}
 
+		// Listen for audio settings changes
+		if (window.electronAPI?.onAudioSettingsChange) {
+			window.electronAPI.onAudioSettingsChange((enabled) => {
+				audioEnabled = enabled;
+				console.log(`🔊 Audio settings changed: ${enabled ? 'enabled' : 'disabled'}`);
+			});
+			console.log('✅ Listening for audio settings changes');
+		} else {
+			console.error('❌ electronAPI.onAudioSettingsChange not available');
+		}
+
 		// Initialize Dubs as sleeping
 		dubsStore.setState('dubs_sleeping');
 		isDogAwake = false; // Ensure awake state is false on mount
@@ -182,6 +200,10 @@
 		bottom: 20px;
 		left: 20px;
 		transition: 0.3s ease;
+	}
+
+	.dubs-character:hover {
+		opacity: 0.2;
 	}
 
 	.dubs-sprite {

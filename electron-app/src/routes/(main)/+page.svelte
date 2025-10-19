@@ -8,6 +8,8 @@
 	let modalDuration = $state(25); // Default to 25 minutes
 	let displayTime = $state(0); // For smooth RAF updates
 	let rafId = $state(null);
+	let overlayVisible = $state(true); // Track overlay visibility state
+	let audioEnabled = $state(true); // Track audio enabled state
 
 	function formatTime(seconds) {
 		const mins = Math.floor(seconds / 60);
@@ -54,6 +56,20 @@
 
 	function selectDuration(minutes) {
 		modalDuration = minutes;
+	}
+
+	function toggleOverlay() {
+		overlayVisible = !overlayVisible;
+		if (window.electronAPI?.toggleOverlay) {
+			window.electronAPI.toggleOverlay(overlayVisible);
+		}
+	}
+
+	function toggleAudio() {
+		audioEnabled = !audioEnabled;
+		if (window.electronAPI?.setAudioEnabled) {
+			window.electronAPI.setAudioEnabled(audioEnabled);
+		}
 	}
 
 	// RequestAnimationFrame loop for smooth timer updates and future Dubs animation management
@@ -112,6 +128,24 @@
 				</div>
 			{/if}
 		</div>
+
+		<div class="overlay-controls">
+			<h3 class="controls-title">Dubs Settings</h3>
+			<div class="control-group">
+				<label class="control-label">
+					<span>Dubs Overlay</span>
+					<button class="toggle-btn text {overlayVisible ? 'active' : ''}" onclick={toggleOverlay}>
+						{overlayVisible ? 'On' : 'Off'}
+					</button>
+				</label>
+				<label class="control-label">
+					<span>Dubs Audio</span>
+					<button class="toggle-btn text {audioEnabled ? 'active' : ''}" onclick={toggleAudio}>
+						{audioEnabled ? 'On' : 'Off'}
+					</button>
+				</label>
+			</div>
+		</div>
 	</div>
 
 	<div class="right">
@@ -154,28 +188,6 @@
 		>
 			<h2 id="modal-title" class="modal-title">Start New Session</h2>
 
-			<!-- Duration Selector -->
-			<div class="duration-selector">
-				<button
-					class="duration-btn {modalDuration === 25 ? 'selected' : ''}"
-					onclick={() => selectDuration(25)}
-				>
-					25 min
-				</button>
-				<button
-					class="duration-btn {modalDuration === 45 ? 'selected' : ''}"
-					onclick={() => selectDuration(45)}
-				>
-					45 min
-				</button>
-				<button
-					class="duration-btn {modalDuration === 60 ? 'selected' : ''}"
-					onclick={() => selectDuration(60)}
-				>
-					60 min
-				</button>
-			</div>
-
 			<!-- svelte-ignore a11y_autofocus -->
 			<input
 				type="text"
@@ -185,9 +197,33 @@
 				onkeydown={handleKeydown}
 				autofocus
 			/>
+			<div class="duration-selector">
+				<button
+					class="duration-btn text {modalDuration === 25 ? 'selected' : ''}"
+					onclick={() => selectDuration(25)}
+				>
+					25 min
+				</button>
+				<button
+					class="duration-btn text {modalDuration === 45 ? 'selected' : ''}"
+					onclick={() => selectDuration(45)}
+				>
+					45 min
+				</button>
+				<button
+					class="duration-btn text {modalDuration === 60 ? 'selected' : ''}"
+					onclick={() => selectDuration(60)}
+				>
+					60 min
+				</button>
+			</div>
 			<div class="modal-buttons">
-				<button onclick={closeModal} class="btn-cancel">Cancel</button>
-				<button onclick={handleStartSession} class="btn-start" disabled={!modalTaskName.trim()}>
+				<button onclick={closeModal} class="btn-cancel text">Cancel</button>
+				<button
+					onclick={handleStartSession}
+					class="btn-start text"
+					disabled={!modalTaskName.trim()}
+				>
 					Start
 				</button>
 			</div>
@@ -218,9 +254,10 @@
 	}
 
 	.task-name {
-		margin: 1rem 0 2rem 0;
-		font-size: 2rem;
-		font-weight: 500;
+		margin: 1rem 0 1rem 0;
+		font-size: 3rem;
+		/* font-weight: 500; */
+		font-family: 'PPMondwest', sans-serif;
 	}
 
 	.time {
@@ -277,6 +314,47 @@
 		gap: 1rem;
 	}
 
+	/* Overlay Controls */
+	.overlay-controls {
+		padding: 1.5rem;
+		background: var(--bg-2);
+		border-radius: 1rem;
+		border: 2px solid var(--txt-1);
+	}
+
+	.controls-title {
+		margin: 0 0 1rem 0;
+		font-size: 2rem;
+		font-family: 'PPMondwest', sans-serif;
+		/* font-weight: 500; */
+	}
+
+	.control-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.control-label {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.control-label span {
+		font-weight: 500;
+	}
+
+	.toggle-btn {
+		min-width: 4rem;
+		padding: 0.75rem 1rem;
+	}
+
+	.toggle-btn.active {
+		background: var(--acc-1);
+	}
+
 	/* Modal styles */
 	.modal-backdrop {
 		position: fixed;
@@ -294,67 +372,53 @@
 
 	.modal {
 		background: var(--bg-1);
-		border: 2px solid var(--bg-2);
+		border: 2px solid var(--txt-1);
 		border-radius: 1rem;
 		padding: 2rem;
 		width: 90%;
 		max-width: 500px;
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1rem;
 	}
 
 	.modal-title {
-		margin: 0;
-		font-size: 1.5rem;
+		margin: 0 0 0.5rem 0;
+		font-size: 3rem;
 		font-weight: 500;
-		color: var(--txt-1);
+		font-family: 'PPMondwest', sans-serif;
 	}
 
 	/* Duration Selector */
 	.duration-selector {
 		display: flex;
-		gap: 0.75rem;
+		gap: 1rem;
 		justify-content: center;
+		margin: 0 0 1rem 0;
 	}
 
 	.duration-btn {
 		flex: 1;
-		padding: 0.75rem 1rem;
-		font-size: 1rem;
-		font-weight: 500;
-		border: 2px solid var(--bg-2);
-		background: transparent;
-		color: var(--txt-1);
-		border-radius: 0.5rem;
-		cursor: pointer;
-		transition: all 0.2s;
-		font-family: inherit;
-	}
-
-	.duration-btn:hover {
-		background: var(--bg-2);
 	}
 
 	.duration-btn.selected {
-		background: var(--acc-1);
-		border-color: var(--acc-1);
-		color: var(--bg-1);
+		transform: translate(0px, 0px);
+		box-shadow: 0px 0px 0px 0px var(--txt-1);
+		background: var(--acc-2);
 	}
 
 	.task-input {
-		padding: 0.75rem 1rem;
+		padding: 1rem 1rem;
 		font-size: 1rem;
-		border: 2px solid var(--bg-2);
+		border: 2px solid var(--txt-1);
 		background: var(--bg-1);
 		color: var(--txt-1);
-		border-radius: 0.5rem;
+		border-radius: 1rem;
 		font-family: inherit;
 	}
 
 	.task-input:focus {
 		outline: none;
-		border-color: var(--acc-1);
 	}
 
 	.modal-buttons {
@@ -364,19 +428,6 @@
 	}
 
 	.btn-cancel {
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		font-weight: 500;
-		border: 2px solid var(--bg-2);
-		background: transparent;
-		color: var(--txt-1);
-		border-radius: 0.5rem;
-		cursor: pointer;
-		transition: background 0.2s;
-		font-family: inherit;
-	}
-
-	.btn-cancel:hover {
-		background: var(--bg-2);
+		background: var(--bg-1);
 	}
 </style>

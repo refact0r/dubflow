@@ -13,9 +13,9 @@
 	--txt-3: hsl(250, 10%, 30%);
 	--txt-2: hsl(250, 10%, 20%);
 	--txt-1: hsl(250, 10%, 12%);
-	--acc-1: hsl(250, 60%, 70%);
-	--acc-2: hsl(250, 40%, 60%);
-	--alt-1: hsl(45, 50%, 50%);
+	--acc-1: hsl(250, 50%, 75%);
+	--acc-2: hsl(250, 40%, 65%);
+	--alt-1: hsl(45, 50%, 60%);
 
 	box-sizing: border-box;
 }
@@ -40,13 +40,22 @@ button {
 button.text {
 	padding: 1rem 1.5rem;
 	border: none;
-	/* border: 1px solid var(--txt-1); */
+	border: 2px solid var(--txt-1);
 	background: var(--acc-1);
-	/* transform: translate(-2px, -2px); */
-	/* box-shadow: 2px 2px 0px 0px var(--txt-1); */
+	transform: translate(-2px, -2px);
+	box-shadow: 2px 2px 0px 0px var(--txt-1);
 	border-radius: 1rem;
 	cursor: pointer;
+	transition: 0.1s ease;
+	font-weight: 500;
 }
 
 button.text:hover {
+	transform: translate(0px, 0px);
+	box-shadow: 0px 0px 0px 0px var(--txt-1);
+}
+
+button.text[disabled] {
+	transform: translate(0px, 0px);
+	box-shadow: 0px 0px 0px 0px var(--txt-1);
 }

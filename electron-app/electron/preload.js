@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// Overlay control
 	toggleOverlay: (visible) => ipcRenderer.send('toggle-overlay', visible),
 	setDubsState: (state) => ipcRenderer.send('set-dubs-state', state),
+	setAudioEnabled: (enabled) => ipcRenderer.send('set-audio-enabled', enabled),
 
 	// Emergency stop for distraction manager
 	emergencyStopDistraction: () => ipcRenderer.send('emergency-stop-distraction'),
@@ -50,6 +51,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	// Active window tracking listener
 	onActiveWindowUpdate: (callback) => {
 		ipcRenderer.on('active-window-update', (event, windowInfo) => callback(windowInfo));
+	},
+
+	// Audio settings listener
+	onAudioSettingsChange: (callback) => {
+		ipcRenderer.on('audio-settings-change', (event, enabled) => callback(enabled));
 	},
 
 	// Cleanup listeners
