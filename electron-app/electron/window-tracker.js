@@ -4,7 +4,7 @@
  */
 
 import { activeWindowSync } from 'get-windows';
-import { focusConfig } from './focus-config.js';
+import { windowTrackerConfig } from './window-tracker-config.js';
 
 /**
  * Get information about the currently active window
@@ -50,7 +50,7 @@ export const classifyWindow = (window) => {
 	const { owner, url } = window;
 	const appName = owner.name;
 	const { productiveApps, distractingApps, productiveSites, distractingSites, settings } =
-		focusConfig;
+		windowTrackerConfig;
 
 	// Check URL-based classification if available
 	if (url && settings.urlOverridesApp) {
@@ -147,7 +147,7 @@ export class WindowTracker {
 			return;
 		}
 
-		const interval = pollInterval || focusConfig.settings.pollInterval;
+		const interval = pollInterval || windowTrackerConfig.settings.pollInterval;
 		console.log(`🔍 Starting window tracker (polling every ${interval}ms)`);
 
 		this.poll(); // Get initial window
