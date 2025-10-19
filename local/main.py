@@ -97,15 +97,15 @@ class LockInDubsVision:
 
         # Get AWS Rekognition context (throttled to avoid excessive API calls
 
-        if (
-            self.stats["total_frames"] % 30 == 0
-        ):  # Every 30 frames (~1.5 seconds at 20 FPS)
-            self.global_rekognition_context = self.rekognition_analyzer.get_context_summary(frame)
+        # if (
+        #     self.stats["total_frames"] % 30 == 0
+        # ):  # Every 30 frames (~1.5 seconds at 20 FPS)
+        #     self.global_rekognition_context = self.rekognition_analyzer.get_context_summary(frame)
 
         # Combine context data
         context_data = {
             "opencv_data": self.opencv_context,
-            "rekognition_data": self.global_rekognition_context,
+            "rekognition_data": self.global_rekognition_context, # With new edits, shouldn't be anything
             **self.opencv_context,  # Include opencv data at top level for easy access
         }
 
@@ -116,6 +116,8 @@ class LockInDubsVision:
         else:
             self.stats["distracted_frames"] += 1
 
+        self.ipc_communicator.setInternalFrame(frame) # Set internal frame
+        
         # Decision logic as specified in requirements
         if self.is_focused:
 

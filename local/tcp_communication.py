@@ -7,6 +7,7 @@ import json
 import socket
 import traceback
 import threading
+from aws_rekognition import RekognitionAnalyzer
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from config import Config
@@ -20,6 +21,8 @@ class TCPCommunicator:
         self.is_connected = False
         self.port = Config.IPC_PORT
         self.host = 'localhost'
+        self.internal_data_frame = {}
+        self.tcp_rekognition_analyzer = RekognitionAnalyzer()
         
         try:
             # Create TCP socket
@@ -41,19 +44,74 @@ class TCPCommunicator:
             print(f"Failed to initialize TCP communication: {e}")
             self.is_connected = False
     
+    def setInternalFrame(self, frame):
+        self._internal_data_frame = frame
+
     def _accept_connections(self):
         """Accept incoming connections from Electron."""
         while self.is_connected:
             try:
-                client_socket, address = self.socket.accept()
+                electron_client_socket, address = self.socket.accept()
                 print(f"Electron connected from {address}")
                 
                 # Store the client socket for sending messages
-                self.client_socket = client_socket
+                self.client_socket = electron_client_socket
+                
+                # Handle incoming requests in a separate thread
+                request_thread = threading.Thread(
+                    target=self._handle_client_requests, 
+                    args=(electron_client_socket,), 
+                    daemon=True
+                )
+                request_thread.start()
                 
             except Exception as e:
                 if self.is_connected:
                     print(f"Error accepting connection: {e}")
+    
+    def _handle_client_requests(self, electron_client_socket):
+        """Handle incoming requests from Electron client."""
+        try:
+            while self.is_connected:
+                # Receive data from client
+                data = self.client_socket.recv(1024)
+                if not data:
+                    break
+                
+                try:
+                    # Parse the request
+                    request = json.loads(data.decode('utf-8'))
+                    request_type = request.get('type', '')
+                    
+                    if request_type == 'get_data':
+                        # Handle data request
+                        response = self.tcp_rekognition_analyzer.get_context_summary(self._internal_data_frame)
+                        responseJSON = json.dumps(response) + '\n';
+                        self.client_socket.send(responseJSON.encode('utf-8'))
+                    else:
+                        # Unknown request type
+                        error_response = {
+                            'error': f'Unknown request type: {request_type}',
+                            'status': 'error'
+                        }
+                        error_json = json.dumps(error_response) + '\n'
+                        self.client_socket.send(error_json.encode('utf-8'))
+                        
+                except json.JSONDecodeError:
+                    error_response = {
+                        'error': 'Invalid JSON request',
+                        'status': 'error'
+                    }
+                    error_json = json.dumps(error_response) + '\n'
+                    self.client_socket.send(error_json.encode('utf-8'))
+                    
+        except Exception as e:
+            print(f"Error handling client requests: {e}")
+        finally:
+            try:
+                self.client_socket.close()
+            except:
+                pass
     
     def create_event_json(self, event_type: str, context_data: Dict[str, Any]) -> Dict[str, Any]:
         """

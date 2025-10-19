@@ -50,7 +50,7 @@ class PythonIPCInterface extends EventEmitter {
 		if (!this.socket) return;
 
 		// Handle incoming data
-		this.socket.on('data', (data) => {
+		this.socket.on('data', async (data) => {
 			this.buffer += data.toString();
 
 			// Process complete messages (assuming newline-delimited JSON)
@@ -63,7 +63,7 @@ class PythonIPCInterface extends EventEmitter {
 						// Parse JSON message
 						const eventData = JSON.parse(line);
 
-						//console.log('📊 Face Detection Data:', eventData);
+						console.log('Received data: ', eventData);
                         // EVENT DATA SCHEMA:
                         /*
                         event = {
@@ -86,9 +86,10 @@ class PythonIPCInterface extends EventEmitter {
                             }
                         }
                         */
-
+                        var eventTypeTrigger = false;
 						// Emit events based on the event type
 						if (eventData.event === 'user_unfocused') {
+                            eventTypeTrigger = true;
 							console.log('User UNFOCUSED! LOCK BACK IN!!');
 							// Emit distraction detected event
 							this.emit('distraction_detected', eventData);
@@ -97,6 +98,7 @@ class PythonIPCInterface extends EventEmitter {
 								...eventData
 							});
 						} else if (eventData.event === 'user_focused') {
+                            eventTypeTrigger = true;
 							console.log('User FOCUSED! GOOD JOB!!');
 							// Emit focus restored event
 							this.emit('focus_restored', eventData);
@@ -105,12 +107,25 @@ class PythonIPCInterface extends EventEmitter {
 								...eventData
 							});
 						}
+                        
+                        console.log('TIME: ', eventData.timestamp)
 
                         // AWS Rekognition data ALL OUTPUTTED HERE!! Everything about room,
                         // distractions, objects nearby, user's surroundings, etc will be here.
                         // console.log(eventData.context.rekognition_data);
-                        console.log('TIME: ', eventData.timestamp)
-                        this.printRekognitionContext(eventData.context.rekognition_data)
+                        //this.printRekognitionContext(eventData.context.rekognition_data)
+
+                        
+                        // PYTHON COMMUNICATION DEMO
+                        // Request data from Python
+                        if(eventTypeTrigger) {
+                            try {
+                                const data = await this.requestData();
+                                console.log('Received data:', data);
+                            } catch (error) {
+                                console.error('Failed to get data:', error.message);
+                            }
+                        }
 
 					} catch (error) {
 						console.error('❌ Failed to parse message:', error.message);
@@ -157,6 +172,27 @@ class PythonIPCInterface extends EventEmitter {
 			//console.log('🔄 Attempting to reconnect...');
 			this.connect();
 		}, 5000); // 5 second delay
+	}
+
+	/**
+	 * Request data from Python system
+	 */
+	async requestData() {
+		return new Promise((resolve, reject) => {
+			if (!this.isConnected) {
+				reject(new Error('Not connected to Python system'));
+				return;
+			}
+
+			const requestSocket = this.socket;
+
+			// Connect to Python system
+            const request = {
+                type: 'get_data',
+                timestamp: new Date().toISOString()
+            };
+			requestSocket.write(JSON.stringify(request));
+		});
 	}
 
 	/**

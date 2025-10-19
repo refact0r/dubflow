@@ -190,8 +190,9 @@ class RekognitionAnalyzer:
         #print("Scene Analysis: ", scene_analysis)
         
         # Combine results
+        from datetime import datetime, timezone
         context = {
-            'timestamp': None,  # Will be set by caller
+            'timestamp': datetime.now(timezone.utc).isoformat(),  # Will be set by caller
             'scene_analysis': scene_analysis,
             'face_analysis': face_analysis,
             'distraction_level': 'low'
