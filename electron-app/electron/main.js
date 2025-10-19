@@ -207,7 +207,6 @@ app.on('ready', () => {
 	initializeServices();
 	createDashboardWindow();
 	createOverlayWindow();
-	console.log("WINDOW TRACKING STARTING!!");
 	windowTracker.start();
 });
 

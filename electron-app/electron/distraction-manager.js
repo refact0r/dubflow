@@ -35,7 +35,7 @@ export class DistractionManager extends EventEmitter {
 		this.lastTriggerSource = null;
 
 		// Configuration
-		this.DISTRACTION_THRESHOLD = 5000; // 5 seconds in milliseconds
+		this.DISTRACTION_THRESHOLD = 2500; // 2.5 seconds in milliseconds
 		this.CHECK_INTERVAL = 500; // Check every 500 milliseconds
 
 		// Registered windows for broadcasting
@@ -145,12 +145,12 @@ export class DistractionManager extends EventEmitter {
 	 */
 	checkDistractionState() {
 		const sessionActive = this.sessionManager.isSessionActive();
-		console.log('🔍 Checking distraction state:', {
-			sessionActive,
-			isWindowDistracted: this.isWindowDistracted,
-			isEyeDistracted: this.isEyeDistracted,
-			hasTimer: !!this.distractionStartTime
-		});
+		// console.log('🔍 Checking distraction state:', {
+		// 	sessionActive,
+		// 	isWindowDistracted: this.isWindowDistracted,
+		// 	isEyeDistracted: this.isEyeDistracted,
+		// 	hasTimer: !!this.distractionStartTime
+		// });
 
 		// Only track distractions if a session is active
 		if (!sessionActive) {
@@ -236,6 +236,41 @@ export class DistractionManager extends EventEmitter {
 	async sleep(ms) {
 		return new Promise(resolve => setTimeout(resolve, ms));
 	}
+
+	/**
+	 * Wait for Rekognition data to be available
+	 * @param {number} timeout - Maximum time to wait in milliseconds
+	 * @returns {Promise<Object|null>} Rekognition data or null if timeout
+	 */
+	async waitForRekognitionData(timeout = 5000) {
+		return new Promise((resolve) => {
+			const startTime = Date.now();
+			const checkInterval = 100; // Check every 100ms
+			
+			const checkForData = () => {
+				// Check if we have new data (not empty and different from previous)
+				if (this.pythonIPC.globalBedrockString && 
+					this.pythonIPC.globalBedrockString.trim() !== '') {
+					console.log('✅ Rekognition data received asynchronously');
+					resolve(this.pythonIPC.globalBedrockString);
+					return;
+				}
+				
+				// Check if we've exceeded timeout
+				if (Date.now() - startTime > timeout) {
+					console.warn('⚠️ Timeout waiting for Rekognition data');
+					resolve(null);
+					return;
+				}
+				
+				// Continue checking
+				setTimeout(checkForData, checkInterval);
+			};
+			
+			// Start checking
+			checkForData();
+		});
+	}
 	/**
 	 * Main orchestration method when distraction threshold is reached
 	 * Executes the full alert flow
@@ -251,11 +286,21 @@ export class DistractionManager extends EventEmitter {
 			let rekognitionData = null;
 			try {
 				console.log('📸 Requesting Rekognition data from Python...');
+				
+				// Clear previous data to ensure we get fresh data
+				this.pythonIPC.globalBedrockString = '';
+				
+				// Request new data
 				this.pythonIPC.requestData();
-
-				// Briefly sleep, allow AWS to work.
-				this.sleep(500);
-				rekognitionData = this.pythonIPC.globalBedrockString;
+				
+				// Wait asynchronously for the data to be available
+				rekognitionData = await this.waitForRekognitionData(3000); // 3 second timeout
+				
+				if (rekognitionData) {
+					console.log('** Rekognition data received ** ', rekognitionData);
+				} else {
+					console.log('** No Rekognition data received within timeout **');
+				}
 			} catch (error) {
 				console.warn('⚠️  Failed to get Rekognition data:', error.message);
 				// Continue without rekognition data
@@ -263,6 +308,8 @@ export class DistractionManager extends EventEmitter {
 
 			// Step 2: Gather all context
 			const context = this.gatherContext(rekognitionData);
+			console.log(context);
+			
 			console.log('📋 Context gathered:', JSON.stringify(context, null, 2));
 
 			// Step 3: Generate message using Bedrock
@@ -300,6 +347,8 @@ export class DistractionManager extends EventEmitter {
 
 			// Emit event for other listeners
 			this.emit('distraction-occurred', alertPackage);
+			this.DISTRACTION_THRESHOLD = 7000;
+
 		} catch (error) {
 			console.error('❌ Error handling distraction threshold:', error);
 		}
