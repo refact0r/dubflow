@@ -16,7 +16,8 @@
 		barking_talking: { frames: 3, fps: 7, duration: (3 / 7) * 1000 },
 		to_sleep: { frames: 3, fps: 7, duration: (3 / 7) * 1000 },
 		sleeping: { frames: 10, fps: 7, duration: (10 / 7) * 1000 },
-		default_stance: { frames: 3, fps: 7, duration: (3 / 7) * 1000 }
+		default_stance: { frames: 3, fps: 7, duration: (3 / 7) * 1000 },
+		feed_treat: { frames: 13, fps: 7, duration: (13 / 7) * 1000 }
 	};
 
 	/**
@@ -160,17 +161,33 @@
 	}
 
 	/**
-	 * Handle session state changes
-	 * When session stops, put Dubs to sleep
+	 * Handle session completion with reward for high focus
+	 * @param {Object} session - Completed session data
 	 */
-	$effect(() => {
-		const isActive = sessionStore.isActive;
+	function handleSessionCompleted(session) {
+		console.log('🎉 Session completed:', session);
+		currentMessage = '';
 
-		if (!isActive) {
-			// Session stopped - put Dubs to sleep
-			currentMessage = '';
+		// Check if session had >90% focus score - give Dubs a treat!
+		if (session.focusScore > 90) {
+			console.log('🍖 High focus score! Giving Dubs a treat!');
 
-			// Only play sleep animation if dog was awake
+			// Play treat animation sequence: feed_treat → to_sleep → sleeping
+			playAnimationSequence(
+				[
+					{ state: 'dubs_feed_treat', loop: false },
+					{ state: 'dubs_to_sleep', loop: false },
+					{ state: 'dubs_sleeping', loop: true }
+				],
+				null,
+				(completedState) => {
+					if (completedState === 'dubs_to_sleep') {
+						isDogAwake = false;
+					}
+				}
+			);
+		} else {
+			// Normal end - just go to sleep
 			if (isDogAwake) {
 				playAnimationSequence(
 					[
@@ -187,6 +204,20 @@
 			} else {
 				dubsStore.setState('dubs_sleeping');
 			}
+		}
+	}
+
+	/**
+	 * Handle session state changes
+	 * When session stops, put Dubs to sleep (only for manual stops without completion event)
+	 */
+	$effect(() => {
+		const isActive = sessionStore.isActive;
+
+		if (!isActive) {
+			// Session stopped - but don't animate here if we just completed
+			// (handleSessionCompleted will handle animation for completed sessions)
+			// This is just a fallback for edge cases
 		}
 	});
 
@@ -207,6 +238,14 @@
 			console.log('✅ Listening for user refocus events');
 		} else {
 			console.error('❌ electronAPI.onUserRefocused not available');
+		}
+
+		// Listen for session completion events
+		if (window.electronAPI?.onSessionCompleted) {
+			window.electronAPI.onSessionCompleted(handleSessionCompleted);
+			console.log('✅ Listening for session completion events');
+		} else {
+			console.error('❌ electronAPI.onSessionCompleted not available');
 		}
 
 		// Listen for audio settings changes

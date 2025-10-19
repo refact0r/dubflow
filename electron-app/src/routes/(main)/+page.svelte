@@ -529,10 +529,10 @@
 			/>
 			<div class="duration-selector">
 				<button
-					class="duration-btn text {modalDuration === 1 ? 'selected' : ''}"
-					onclick={() => selectDuration(1)}
+					class="duration-btn text {modalDuration === 2 ? 'selected' : ''}"
+					onclick={() => selectDuration(2)}
 				>
-					1 min
+					2 min
 				</button>
 				<button
 					class="duration-btn text {modalDuration === 25 ? 'selected' : ''}"
