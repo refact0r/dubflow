@@ -55,6 +55,9 @@ const createDashboardWindow = () => {
 		}
 	});
 
+	// Maximize the window
+	mainWindow.maximize();
+
 	// Load the index.html of the app
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -83,14 +86,14 @@ const createDashboardWindow = () => {
 
 const createOverlayWindow = () => {
 	const primaryDisplay = screen.getPrimaryDisplay();
-	const { width, height } = primaryDisplay.workAreaSize;
+	const { height } = primaryDisplay.workAreaSize;
 
 	// Create transparent overlay window
 	overlayWindow = new BrowserWindow({
-		width: 300,
-		height: 300,
-		x: width - 320,
-		y: height - 320,
+		width: 320,
+		height: 320,
+		x: 20,
+		y: height - 300,
 		transparent: true,
 		frame: false,
 		alwaysOnTop: true,

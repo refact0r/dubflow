@@ -103,14 +103,16 @@
 
 <div class="overlay-container">
 	<div class="dubs-character">
-		<img src={`/${dubsStore.spriteFile}`} alt="Dubs the mascot" class="dubs-sprite" />
+		<!-- <img src={`/${dubsStore.spriteFile}`} alt="Dubs" class="dubs-sprite" /> -->
+
+		<img src="dubs/dubs_barking_talking.gif" alt="Dubs the mascot" class="dubs-sprite" />
 	</div>
 
-	{#if sessionStore.isActive && dubsStore.state !== 'dubs_sleeping' && currentMessage}
-		<div class="thought-bubble">
-			<p>{currentMessage}</p>
-		</div>
-	{/if}
+	<!-- {#if sessionStore.isActive && dubsStore.state !== 'dubs_sleeping' && currentMessage} -->
+	<div class="thought-bubble">
+		<p>hello world</p>
+	</div>
+	<!-- {/if} -->
 </div>
 
 <style>
@@ -124,25 +126,26 @@
 	.overlay-container {
 		width: 100vw;
 		height: 100vh;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
 		position: relative;
+		border: 1px solid green;
 	}
 
 	.dubs-character {
-		position: relative;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		transition: 0.3s ease;
+		border: 1px solid red;
+	}
+	.dubs-character:hover {
+		opacity: 0.2;
 	}
 
 	.dubs-sprite {
-		width: 240px;
+		width: 280px;
 		object-fit: contain;
 		image-rendering: pixelated;
-		filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+		filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.3));
 	}
 
 	.thought-bubble {
