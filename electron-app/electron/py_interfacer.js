@@ -136,8 +136,16 @@ class PythonIPCInterface extends EventEmitter {
     /**
      * Display all AWS Rekognition context in a clever, readable manner.
      */
-    printRekognitionContext(rekognitionJSON) {
-        console.log(JSON.parse(rekognitionJSON));
+    printRekognitionContext(rekognitionData) {
+        try {
+            // Try to parse if it's valid JSON
+            const parsed = JSON.parse(rekognitionData);
+            console.log('🔍 Rekognition Data:', parsed);
+        } catch (error) {
+            // If it's a Python dict string, just log it as-is
+            // (Python dicts use single quotes and aren't valid JSON)
+            console.log('🔍 Rekognition Data (raw):', rekognitionData);
+        }
     }
 
 	/**

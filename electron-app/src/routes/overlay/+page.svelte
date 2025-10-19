@@ -4,6 +4,7 @@
 
 	let previousProductiveState = $state(true);
 	let stateTimeout = null;
+	let lastFocusState = $state(null); // Track last state to prevent duplicates
 
 	/**
 	 * Play voice notification using ElevenLabs
@@ -46,6 +47,7 @@
 
 		// Only react if session is active and state changed
 		if (isActive && previousProductiveState !== isProductive) {
+			// Clear all pending timeouts
 			if (stateTimeout) clearTimeout(stateTimeout);
 
 			if (!isProductive) {
@@ -59,20 +61,21 @@
 					// Optionally escalate to barking if distraction continues
 					stateTimeout = setTimeout(() => {
 						if (!activeWindowStore.isProductive) {
-							dubsStore.setState('barking');
+							dubsStore.setState('dubs_heavy_bark');
 							// Play voice notification when barking starts
 							playVoiceNotification();
 						}
 					}, 5000);
 				}, 2000);
 			} else {
-				// User returned to focus
+				// User returned to focus - just play the sleeping animation once
 				dubsStore.setState('dubs_sleeping');
 			}
 
 			previousProductiveState = isProductive;
 		} else if (!isActive) {
 			// No active session, keep Dubs sleeping
+			if (stateTimeout) clearTimeout(stateTimeout);
 			dubsStore.setState('dubs_sleeping');
 		}
 	});
@@ -87,13 +90,27 @@
 		// Listen for focus updates from Python vision system
 		window.electronAPI?.onVisionFocusUpdate?.((data) => {
 			console.log('📊 Python focus update:', data);
+			
+			// Prevent duplicate state changes
+			if (lastFocusState === data.focused) {
+				return;
+			}
+			lastFocusState = data.focused;
+
 			if (data.focused) {
 				console.log('✅ User FOCUSED - Dubs sleeping');
+				// Clear any pending timeouts
+				if (stateTimeout) clearTimeout(stateTimeout);
+				
+				// Just set to sleeping directly - no animation, no timeout
 				dubsStore.setState('dubs_sleeping');
 			} else {
 				console.log('⚠️ User UNFOCUSED - Dubs barking');
-				dubsStore.setState('barking');
-				// Play voice notification when barking starts
+				// Clear any pending timeouts
+				if (stateTimeout) clearTimeout(stateTimeout);
+				
+				// Set to barking and play voice
+				dubsStore.setState('dubs_heavy_bark');
 				playVoiceNotification();
 			}
 		});
