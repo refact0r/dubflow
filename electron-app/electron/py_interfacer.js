@@ -71,9 +71,9 @@ class PythonIPCInterface extends EventEmitter {
                         // IF THE DATA IS AWS-REKOG RELATED
                         if(eventData.hasOwnProperty("scene_analysis")) {
                             console.log("AWS Rekognition Detects...");
-                            console.log(eventData.scene_analysis.labels);
+                            console.log(eventData);
 
-                            this.globalBedrockString = JSON.stringify(eventData.scene_analysis);
+                            this.globalBedrockString = JSON.stringify(eventData);
                         }
 
                         // IF THE DATA IS A TRIGGER!!
