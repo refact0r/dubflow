@@ -6,7 +6,7 @@
 	let stateTimeout = null;
 	let sleepTimeout = null;
 	let lastFocusState = $state(null); // Track last state to prevent duplicates
-	
+
 	const ANIMATION_DELAY = (3 / 7) * 1000; // Exactly 4/7 seconds in milliseconds (~571ms)
 
 	/**
@@ -19,15 +19,15 @@
 
 			if (result.success) {
 				console.log(`✅ Playing message: "${result.message}"`);
-				
+
 				// Convert base64 audio data to audio buffer
-				const audioData = Uint8Array.from(atob(result.audioData), c => c.charCodeAt(0));
+				const audioData = Uint8Array.from(atob(result.audioData), (c) => c.charCodeAt(0));
 				const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
 				const audioUrl = URL.createObjectURL(audioBlob);
-				
+
 				// Play the audio
 				const audio = new Audio(audioUrl);
-				audio.play().catch(err => {
+				audio.play().catch((err) => {
 					console.error('Failed to play audio:', err);
 				});
 
@@ -75,7 +75,7 @@
 			} else {
 				// User returned to focus - play going to sleep animation
 				dubsStore.setState('dubs_to_sleep');
-				
+
 				// Wait exactly 4/7 seconds for animation to complete
 				sleepTimeout = setTimeout(() => {
 					dubsStore.setState('dubs_sleeping');
@@ -101,7 +101,7 @@
 		// Listen for focus updates from Python vision system
 		window.electronAPI?.onVisionFocusUpdate?.((data) => {
 			console.log('📊 Python focus update:', data);
-			
+
 			// Prevent duplicate state changes
 			if (lastFocusState === data.focused) {
 				return;
@@ -113,10 +113,10 @@
 				// Clear any pending timeouts
 				if (stateTimeout) clearTimeout(stateTimeout);
 				if (sleepTimeout) clearTimeout(sleepTimeout);
-				
+
 				// Play going to sleep animation
 				dubsStore.setState('dubs_to_sleep');
-				
+
 				// Wait exactly 4/7 seconds for animation to complete
 				sleepTimeout = setTimeout(() => {
 					dubsStore.setState('dubs_sleeping');
@@ -126,18 +126,19 @@
 				// Clear any pending timeouts
 				if (stateTimeout) clearTimeout(stateTimeout);
 				if (sleepTimeout) clearTimeout(sleepTimeout);
-				
+
 				// Play waking up animation first
 				dubsStore.setState('dubs_waking_up');
-				
+
 				// Wait exactly 4/7 seconds for animation to complete
 				stateTimeout = setTimeout(() => {
 					// Initially show default stance
 					dubsStore.setState('dubs_default_stance');
-					
+
 					// Escalate to heavy bark if distraction continues for 3+ seconds
 					stateTimeout = setTimeout(() => {
-						if (lastFocusState === false) { // Still unfocused
+						if (lastFocusState === false) {
+							// Still unfocused
 							dubsStore.setState('dubs_heavy_bark');
 							playVoiceNotification();
 						}

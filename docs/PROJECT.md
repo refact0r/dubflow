@@ -1,12 +1,12 @@
-# LockInDubs - Project Context & Development Rules
+# Nudge - Project Context & Development Rules
 
 ## Objective
 
-Build LockInDubs - a focus companion app that helps users stay productive using AI-driven feedback, webcam and activity monitoring, and a virtual pet overlay. The app should detect when a user is distracted, react in real-time through an animated character, and reward consistent focus through gamified elements.
+Build Nudge - a focus companion app that helps users stay productive using AI-driven feedback, webcam and activity monitoring, and a virtual pet overlay. The app should detect when a user is distracted, react in real-time through an animated character, and reward consistent focus through gamified elements.
 
 ## Core Concept
 
-LockInDubs features "Dubs," (Dubs is the UW mascot) an intelligent, animated dog that sits as an overlay on the user's desktop. Dubs monitors focus behavior and encourages the user to stay on task.
+Nudge features "Dubs," (Dubs is the UW mascot) an intelligent, animated dog that sits as an overlay on the user's desktop. Dubs monitors focus behavior and encourages the user to stay on task.
 
 **States:**
 
