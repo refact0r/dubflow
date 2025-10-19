@@ -2,7 +2,8 @@
 
 A focus companion app that helps you stay productive through AI-driven feedback and real-time distraction detection. Meet Dubs, your animated desktop companion that monitors your focus and keeps you on task.
 
-<img src="./electron-app/static/dubs/dubs_default_stance.gif" alt="Dubs Default Stance" width="200" height="200" style="image-rendering: pixelated; image-rendering: crisp-edges;" />
+<img width="3024" height="1826" alt="image" src="https://github.com/user-attachments/assets/1ad3baa7-a755-4d6b-a46a-1be0c69513bc" />
+
 
 ## Features
 
