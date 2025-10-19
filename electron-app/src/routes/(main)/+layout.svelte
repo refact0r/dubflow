@@ -6,7 +6,7 @@
 
 <div class="container">
 	<nav class="nav">
-		<a href="/" class="logo">dubflow</a>
+		<a href="/" class="logo">Dubflow</a>
 		<a href="/#/settings" class="settings"><SettingsIcon /></a>
 	</nav>
 
