@@ -1,4 +1,6 @@
 <script>
+	import { sessionStore } from '$lib/stores';
+
 	// Mockup data
 	const sessionDuration = 30 * 60; // 30 minutes in seconds
 	const events = [
@@ -11,207 +13,156 @@
 	];
 
 	let currentTime = $state(1650); // 27.5 minutes
-	let taskName = $state('Deep work - Design mockups');
-	let taskNameInput = $state('Finishing an english essay...');
+	let taskName = $state('Study unit 5 for the calculus midterm!');
 
 	function formatTime(seconds) {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
 		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 	}
+
+	function handleStartSession() {
+		sessionStore.start(taskName);
+	}
+
+	function handleStopSession() {
+		sessionStore.stop();
+	}
 </script>
 
-<div class="dashboard">
-	<header>
-		<h1>🐕 LockInDubs</h1>
-		<p class="subtitle">Your Focus Companion</p>
-	</header>
-
-	<main>
-		<!-- Session Controls -->
-		<section class="session-control">
-			<h2>Focus Session</h2>
-
-			{#if !sessionStore.isActive}
-				<div class="start-session">
-					<input
-						type="text"
-						bind:value={taskNameInput}
-						placeholder="What are you working on?"
-						class="task-input"
-					/>
-					<button onclick={handleStartSession} class="btn btn-primary"> Start Session </button>
-				</div>
-			{:else}
-				<div class="active-session">
-					<div class="task-info">
-						<span class="task-label">Current Task:</span>
-						<span class="task-name">{sessionStore.taskName}</span>
-					</div>
-					<div class="timer">{elapsedDisplay}</div>
-					<button onclick={handleStopSession} class="btn btn-danger"> End Session </button>
-				</div>
-			{/if}
-		</section>
-
-		<!-- Active Window Display -->
-		<section class="activity-monitor">
-			<h2>Current Activity</h2>
-			<div class="current-window">
-				<div class="window-info">
-					<span class="app-name">{activeWindowStore.appName}</span>
-					{#if activeWindowStore.windowTitle}
-						<span class="window-title">{activeWindowStore.windowTitle}</span>
-					{/if}
-					{#if activeWindowStore.url}
-						<span class="window-url" title={activeWindowStore.url}>
-							🌐 {new URL(activeWindowStore.url).hostname}
-						</span>
-					{/if}
-				</div>
-				<span class="productivity-badge" class:productive={activeWindowStore.isProductive}>
-					{activeWindowStore.isProductive ? '✅ Productive' : '⚠️ Distraction'}
-				</span>
+<div class="container">
+	<div class="left">
+		<div class="timer">
+			<div class="time">12:34</div>
+			<div class="buttons">
+				<button class="text">Pause</button>
+				<button class="text">End</button>
 			</div>
-
-			{#if activeWindowStore.recentApps.length > 0}
-				<div class="recent-apps">
-					<h3>Recent Apps</h3>
-					<ul>
-						{#each activeWindowStore.recentApps as app}
-							<li>
-								<span class="app-icon">{app.isProductive ? '✅' : '⚠️'}</span>
-								<span>{app.appName}</span>
-							</li>
-						{/each}
-					</ul>
-				</div>
-			{/if}
-		</section>
-
-		<!-- Stats Display -->
-		<section class="stats">
-			<h2>Session Stats</h2>
-			<div class="stats-grid">
-				<div class="stat-card">
-					<div class="stat-value">{formatTime(sessionStore.currentElapsed)}</div>
-					<div class="stat-label">Total Time</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">{getFocusPercentage()}%</div>
-					<div class="stat-label">Focus Rate</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">{sessionStore.distractionCount}</div>
-					<div class="stat-label">Distractions</div>
-				</div>
+		</div>
+		{#if !sessionStore.isActive}
+			<div class="start-session">
+				<input
+					type="text"
+					bind:value={taskName}
+					placeholder="What are you working on?"
+					class="task-input"
+				/>
+				<button onclick={handleStartSession} class="btn btn-primary"> Start Session </button>
 			</div>
-		</section>
-
-		<!-- Dubs Controls -->
-		<section class="dubs-controls">
-			<h2>Dubs Controls</h2>
-			<div class="controls-grid">
-				<button onclick={toggleOverlay} class="btn">
-					{dubsStore.overlayVisible ? 'Hide' : 'Show'} Overlay
-				</button>
-				<button onclick={() => dubsStore.emergencyStop()} class="btn btn-warning">
-					🚨 Emergency Stop
-				</button>
-				<div class="dubs-state">
-					<span>Current State:</span>
-					<span class="state-badge">{dubsStore.state}</span>
+		{:else}
+			<div class="active-session">
+				<div class="task-info">
+					<span class="task-label">Current Task:</span>
+					<span class="task-name">{sessionStore.taskName}</span>
 				</div>
+				<button onclick={handleStopSession} class="btn btn-danger"> End Session </button>
 			</div>
-		</section>
-	</main>
+		{/if}
+	</div>
+
+	<div class="right">
+		<h2 class="task-name">{taskName}</h2>
+		<div class="timeline">
+			<div class="bar">
+				{#each events as event}
+					<div
+						class="segment {event.type}"
+						style="left: {(event.start / sessionDuration) * 100}%; width: {(event.duration /
+							sessionDuration) *
+							100}%;"
+					></div>
+				{/each}
+				<div class="indicator" style="left: {(currentTime / sessionDuration) * 100}%;"></div>
+			</div>
+			<div class="time-labels">
+				<span class="time-label">00:00</span>
+				<span class="time-label">30:00</span>
+			</div>
+		</div>
+	</div>
 </div>
 
 <style>
 	.container {
-		padding: 2rem;
-		max-width: 800px;
 		margin: 0 auto;
+		display: flex;
+		gap: 3rem;
+	}
+
+	.left {
+		width: 100%;
+		max-width: 18rem;
+	}
+	.right {
+		width: 100%;
 	}
 
 	.timer {
-		margin-bottom: 3rem;
-		text-align: center;
+		margin-bottom: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
-	.timer h1 {
-		font-size: 1.5rem;
-		margin-bottom: 1rem;
+	.task-name {
+		margin: 1rem 0 2rem 0;
+		font-size: 2rem;
+		font-weight: 500;
 	}
 
 	.time {
-		font-size: 3rem;
-		font-weight: bold;
-		margin: 1rem 0;
+		font-size: 8rem;
+		font-family: 'PPMondwest', sans-serif;
+		margin: 0;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.buttons {
 		display: flex;
 		gap: 1rem;
-		justify-content: center;
-		margin-top: 1rem;
 	}
 
-	button {
-		padding: 0.5rem 1.5rem;
-		border: 1px solid var(--txt-3);
-		background: white;
-		border-radius: 4px;
-		cursor: pointer;
+	.buttons button {
+		width: 100%;
 	}
 
-	button:hover {
-		background: var(--bg-2);
+	.timeline {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
-	.btn-danger:hover {
-		background: #e53e3e;
-	}
-
-	.btn-warning {
-		background: #f6ad55;
-		color: white;
-	}
-
-	.btn-warning:hover {
-		background: #ed8936;
-	}
-
-	/* Activity Monitor */
-	.current-window {
+	.time-labels {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		padding: 1rem;
-		background: #f7fafc;
-		border-radius: 8px;
-		margin-bottom: 1rem;
+		margin-top: 0.5rem;
+	}
+
+	.time-label {
+		font-size: 1.25rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--txt-2);
 	}
 
 	.bar {
 		position: relative;
-		height: 40px;
+		height: 2rem;
 		background: var(--bg-2);
-		border-radius: 4px;
 	}
 
 	.segment {
 		position: absolute;
 		height: 100%;
-		border-radius: 4px;
+		/* border: 2px solid var(--txt-1); */
+		/* border-radius: 0.5rem; */
 	}
 
 	.focus {
-		background: #22c55e;
+		background: var(--acc-1);
 	}
 
 	.distraction {
-		background: #f59e0b;
+		background: var(--alt-1);
 	}
 
 	.current {
