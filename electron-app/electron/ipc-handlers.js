@@ -63,6 +63,12 @@ export const setupIPCHandlers = ({
 		return historyManager.getAllTimeStats();
 	});
 
+	ipcMain.handle('clear-session-history', () => {
+		const historyManager = sessionManager.getHistoryManager();
+		historyManager.clearAllSessions();
+		return { success: true };
+	});
+
 	// Emergency stop for distraction manager
 	ipcMain.on('emergency-stop-distraction', () => {
 		if (distractionManager) {

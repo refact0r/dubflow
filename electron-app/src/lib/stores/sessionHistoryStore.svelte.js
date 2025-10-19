@@ -59,6 +59,18 @@ export class SessionHistoryStore {
 		}
 	}
 
+	async clearAllSessions() {
+		if (window.electronAPI) {
+			console.log('🗑️  Clearing all session history...');
+			await window.electronAPI.clearSessionHistory();
+			// Reload all data after clearing
+			await this.loadHistory();
+			await this.loadDailyStats();
+			await this.loadAllTimeStats();
+			console.log('✅ Session history cleared');
+		}
+	}
+
 	/**
 	 * Format duration in seconds to human-readable string
 	 * @param {number} seconds - Duration in seconds

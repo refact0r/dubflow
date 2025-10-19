@@ -4,6 +4,7 @@
 
 	let allSessions = $state([]);
 	let historyTooltip = $state(null); // { source: string, x: number, y: number }
+	let showClearConfirm = $state(false);
 
 	// Load all sessions on mount
 	onMount(async () => {
@@ -108,6 +109,30 @@
 
 		return segments;
 	}
+
+	/**
+	 * Handle clear history button click
+	 */
+	function handleClearHistory() {
+		showClearConfirm = true;
+	}
+
+	/**
+	 * Confirm clearing history
+	 */
+	async function confirmClearHistory() {
+		await sessionHistoryStore.clearAllSessions();
+		// Reload sessions for this page
+		await loadAllSessions();
+		showClearConfirm = false;
+	}
+
+	/**
+	 * Cancel clearing history
+	 */
+	function cancelClearHistory() {
+		showClearConfirm = false;
+	}
 </script>
 
 <div class="container">
@@ -138,7 +163,12 @@
 	</div>
 
 	<div class="right">
-		<h2 class="page-title">Session History</h2>
+		<div class="header-row">
+			<h2 class="page-title">Session History</h2>
+			{#if allSessions.length > 0}
+				<button class="text" onclick={handleClearHistory}> Clear History </button>
+			{/if}
+		</div>
 
 		{#if allSessions.length > 0}
 			<div class="history-list">
@@ -184,9 +214,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="empty-state">
-				<p>No sessions yet. Start your first session to track your focus!</p>
-			</div>
+			<p>No sessions yet. Start your first session to track your focus!</p>
 		{/if}
 	</div>
 </div>
@@ -195,6 +223,32 @@
 {#if historyTooltip}
 	<div class="tooltip" style="left: {historyTooltip.x}px; top: {historyTooltip.y}px;">
 		{historyTooltip.source}
+	</div>
+{/if}
+
+<!-- Confirmation dialog for clearing history -->
+{#if showClearConfirm}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div class="modal-backdrop" onclick={cancelClearHistory}>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="modal"
+			onclick={(e) => e.stopPropagation()}
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+		>
+			<h3 class="modal-title">Clear History?</h3>
+			<p class="modal-message">
+				This will permanently delete all session history. This action cannot be undone.
+			</p>
+			<div class="modal-buttons">
+				<button class="text btn-cancel" onclick={cancelClearHistory}>Cancel</button>
+				<button class="text" onclick={confirmClearHistory}>Clear All</button>
+			</div>
+		</div>
 	</div>
 {/if}
 
@@ -253,7 +307,7 @@
 
 	/* Page Title */
 	.page-title {
-		margin: 0 0 1.5rem 0;
+		margin: 0;
 		font-size: 3rem;
 		font-family: 'PPMondwest', sans-serif;
 	}
@@ -364,5 +418,62 @@
 
 	.empty-state p {
 		margin: 0;
+	}
+
+	/* Header with clear button */
+	.header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1.5rem;
+	}
+
+	/* Modal styles */
+	.modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		backdrop-filter: blur(4px);
+	}
+
+	.modal {
+		background: var(--bg-1);
+		border: 1px solid var(--txt-1);
+		border-radius: 1.5rem;
+		padding: 2rem;
+		width: 90%;
+		max-width: 500px;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.modal-title {
+		margin: 0 0 0.5rem 0;
+		font-size: 3rem;
+		font-family: 'PPMondwest', sans-serif;
+	}
+
+	.modal-message {
+		margin: 0 0 1rem 0;
+		color: var(--txt-2);
+		line-height: 1.5;
+	}
+
+	.modal-buttons {
+		display: flex;
+		gap: 1rem;
+		justify-content: flex-end;
+	}
+
+	.btn-cancel {
+		background: var(--bg-1);
 	}
 </style>

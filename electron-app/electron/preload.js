@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	getSessionHistory: (count) => ipcRenderer.invoke('get-session-history', count),
 	getDailyStats: (date) => ipcRenderer.invoke('get-daily-stats', date),
 	getAllTimeStats: () => ipcRenderer.invoke('get-alltime-stats'),
+	clearSessionHistory: () => ipcRenderer.invoke('clear-session-history'),
 
 	// Overlay control
 	toggleOverlay: (visible) => ipcRenderer.send('toggle-overlay', visible),
