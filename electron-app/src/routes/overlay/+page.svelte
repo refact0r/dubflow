@@ -133,16 +133,16 @@
 
 <div class="overlay-container">
 	<div class="dubs-character">
-		<!-- <img src={`/${dubsStore.spriteFile}`} alt="Dubs" class="dubs-sprite" /> -->
+		<img src={`/${dubsStore.spriteFile}`} alt="Dubs" class="dubs-sprite" />
 
-		<img src="dubs/dubs_barking_talking.gif" alt="Dubs the mascot" class="dubs-sprite" />
+		<!-- <img src="dubs/dubs_barking_talking.gif" alt="Dubs the mascot" class="dubs-sprite" /> -->
 	</div>
 
-	<!-- {#if sessionStore.isActive && dubsStore.state !== 'dubs_sleeping' && currentMessage} -->
-	<div class="thought-bubble">
-		<p>hello world</p>
-	</div>
-	<!-- {/if} -->
+	{#if sessionStore.isActive && dubsStore.state !== 'dubs_sleeping' && currentMessage}
+		<div class="thought-bubble">
+			<p>{currentMessage}</p>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -157,7 +157,6 @@
 		width: 100vw;
 		height: 100vh;
 		position: relative;
-		border: 1px solid green;
 	}
 
 	.dubs-character {
@@ -165,10 +164,6 @@
 		bottom: 0;
 		left: 0;
 		transition: 0.3s ease;
-		border: 1px solid red;
-	}
-	.dubs-character:hover {
-		opacity: 0.2;
 	}
 
 	.dubs-sprite {
