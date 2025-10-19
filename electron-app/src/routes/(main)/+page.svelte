@@ -169,6 +169,72 @@
 				>
 			</div>
 		</div>
+
+		<!-- Daily Stats Section -->
+		<div class="daily-stats">
+			<h3 class="section-title">Today's Focus</h3>
+			<div class="stats-grid">
+				<div class="stat-card">
+					<div class="stat-value">2h 15m</div>
+					<div class="stat-label">Total Time</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">4</div>
+					<div class="stat-label">Sessions</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">87%</div>
+					<div class="stat-label">Focus Score</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">3🔥</div>
+					<div class="stat-label">Day Streak</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Session History Section -->
+		<div class="session-history">
+			<h3 class="section-title">Recent Sessions</h3>
+			<div class="history-list">
+				<div class="history-item">
+					<div class="history-header">
+						<div class="history-task">Complete project proposal</div>
+						<div class="history-time">45 min</div>
+					</div>
+					<div class="history-footer">
+						<div class="focus-bar">
+							<div class="focus-fill" style="width: 92%"></div>
+						</div>
+						<div class="history-score">92% focus</div>
+					</div>
+				</div>
+				<div class="history-item">
+					<div class="history-header">
+						<div class="history-task">Study for exam</div>
+						<div class="history-time">25 min</div>
+					</div>
+					<div class="history-footer">
+						<div class="focus-bar">
+							<div class="focus-fill" style="width: 78%"></div>
+						</div>
+						<div class="history-score">78% focus</div>
+					</div>
+				</div>
+				<div class="history-item">
+					<div class="history-header">
+						<div class="history-task">Code review</div>
+						<div class="history-time">60 min</div>
+					</div>
+					<div class="history-footer">
+						<div class="focus-bar">
+							<div class="focus-fill" style="width: 95%"></div>
+						</div>
+						<div class="history-score">95% focus</div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -256,7 +322,6 @@
 	.task-name {
 		margin: 1rem 0 1rem 0;
 		font-size: 3rem;
-		/* font-weight: 500; */
 		font-family: 'PPMondwest', sans-serif;
 	}
 
@@ -318,7 +383,7 @@
 	.overlay-controls {
 		padding: 1.5rem;
 		background: var(--bg-2);
-		border-radius: 1rem;
+		border-radius: 1.5rem;
 		border: 2px solid var(--txt-1);
 	}
 
@@ -326,7 +391,6 @@
 		margin: 0 0 1rem 0;
 		font-size: 2rem;
 		font-family: 'PPMondwest', sans-serif;
-		/* font-weight: 500; */
 	}
 
 	.control-group {
@@ -340,10 +404,6 @@
 		justify-content: space-between;
 		align-items: center;
 		gap: 1rem;
-	}
-
-	.control-label span {
-		font-weight: 500;
 	}
 
 	.toggle-btn {
@@ -373,7 +433,7 @@
 	.modal {
 		background: var(--bg-1);
 		border: 2px solid var(--txt-1);
-		border-radius: 1rem;
+		border-radius: 1.5rem;
 		padding: 2rem;
 		width: 90%;
 		max-width: 500px;
@@ -385,7 +445,6 @@
 	.modal-title {
 		margin: 0 0 0.5rem 0;
 		font-size: 3rem;
-		font-weight: 500;
 		font-family: 'PPMondwest', sans-serif;
 	}
 
@@ -429,5 +488,101 @@
 
 	.btn-cancel {
 		background: var(--bg-1);
+	}
+
+	/* Daily Stats */
+	.daily-stats {
+		margin-top: 2rem;
+	}
+
+	.section-title {
+		margin: 0 0 1rem 0;
+		font-size: 2rem;
+		font-family: 'PPMondwest', sans-serif;
+	}
+
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 1rem;
+	}
+
+	.stat-card {
+		padding: 1.5rem;
+		background: var(--bg-2);
+		border: 2px solid var(--txt-1);
+		border-radius: 1rem;
+		text-align: center;
+	}
+
+	.stat-value {
+		font-size: 2rem;
+		font-family: 'PPMondwest', sans-serif;
+		margin-bottom: 0.5rem;
+	}
+
+	.stat-label {
+		font-size: 0.875rem;
+		color: var(--txt-2);
+	}
+
+	/* Session History */
+	.session-history {
+		margin-top: 2rem;
+	}
+
+	.history-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.history-item {
+		padding: 1.25rem;
+		background: var(--bg-2);
+		border: 2px solid var(--txt-1);
+		border-radius: 1rem;
+	}
+
+	.history-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+	.history-task {
+		font-size: 1.125rem;
+	}
+
+	.history-time {
+		color: var(--txt-2);
+	}
+
+	.history-footer {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.focus-bar {
+		flex: 1;
+		height: 0.5rem;
+		background: var(--bg-1);
+		border-radius: 0.25rem;
+		overflow: hidden;
+	}
+
+	.focus-fill {
+		height: 100%;
+		background: var(--acc-1);
+		transition: width 0.3s ease;
+	}
+
+	.history-score {
+		font-size: 0.875rem;
+		color: var(--txt-2);
+		min-width: 4rem;
+		text-align: right;
 	}
 </style>

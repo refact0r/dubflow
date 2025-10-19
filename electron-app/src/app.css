@@ -28,6 +28,10 @@ body {
 	font-family: 'Rethink Sans', sans-serif;
 }
 
+body > svg {
+	display: none;
+}
+
 a {
 	text-decoration: none;
 	color: var(--txt-1);

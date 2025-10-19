@@ -31,7 +31,7 @@
 		pointer-events: none;
 		background: var(--txt-1);
 		filter: url(#noiseFilter);
-		opacity: 0.4;
+		opacity: 0.2;
 	}
 
 	.nav {
@@ -60,6 +60,6 @@
 	main {
 		flex: 1;
 		z-index: 1;
-		padding: 2rem;
+		padding: 1rem 2rem 2rem 2rem;
 	}
 </style>
