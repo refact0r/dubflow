@@ -4,6 +4,7 @@
 
 	let animationTimeout = null;
 	let currentMessage = $state('');
+	let isDogAwake = $state(false); // Track if dog is currently awake/barking
 
 	const ANIMATION_DELAY = (3 / 7) * 1000; // Animation timing (~571ms)
 
@@ -26,6 +27,7 @@
 		// Wait for animation to complete, then show barking state
 		animationTimeout = setTimeout(() => {
 			dubsStore.setState('dubs_heavy_bark');
+			isDogAwake = true; // Mark dog as awake when it starts barking
 
 			// Play audio if available
 			if (alertPackage.audioData) {
@@ -66,20 +68,29 @@
 	 */
 	function handleUserRefocused(refocusData) {
 		console.log('😴 User refocused, resetting dog state:', refocusData);
-		dubsStore.setState('dubs_to_sleep');
+		
 		// Clear any pending animations
 		if (animationTimeout) clearTimeout(animationTimeout);
 
 		// Clear the current message
 		currentMessage = '';
 
-		// Play going to sleep animation
-		dubsStore.setState('dubs_to_sleep');
+		// Only play sleep animation if dog was actually awake
+		if (isDogAwake) {
+			console.log('🐕 Dog was awake, playing sleep animation');
+			// Play going to sleep animation
+			dubsStore.setState('dubs_to_sleep');
 
-		// Wait for animation to complete, then show sleeping state
-		animationTimeout = setTimeout(() => {
+			// Wait for animation to complete, then show sleeping state
+			animationTimeout = setTimeout(() => {
+				dubsStore.setState('dubs_sleeping');
+				isDogAwake = false; // Mark dog as sleeping
+			}, ANIMATION_DELAY);
+		} else {
+			console.log('😴 Dog was already sleeping, no animation needed');
+			// Dog was already sleeping, just ensure it stays sleeping
 			dubsStore.setState('dubs_sleeping');
-		}, ANIMATION_DELAY);
+		}
 	}
 
 	/**
@@ -93,10 +104,16 @@
 			// Session stopped - put Dubs to sleep
 			if (animationTimeout) clearTimeout(animationTimeout);
 
-			dubsStore.setState('dubs_to_sleep');
-			animationTimeout = setTimeout(() => {
+			// Only play sleep animation if dog was awake
+			if (isDogAwake) {
+				dubsStore.setState('dubs_to_sleep');
+				animationTimeout = setTimeout(() => {
+					dubsStore.setState('dubs_sleeping');
+					isDogAwake = false;
+				}, ANIMATION_DELAY);
+			} else {
 				dubsStore.setState('dubs_sleeping');
-			}, ANIMATION_DELAY);
+			}
 
 			currentMessage = '';
 		}
@@ -123,6 +140,7 @@
 
 		// Initialize Dubs as sleeping
 		dubsStore.setState('dubs_sleeping');
+		isDogAwake = false; // Ensure awake state is false on mount
 
 		// Clean up on unmount
 		return () => {
