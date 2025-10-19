@@ -5,3 +5,4 @@
 export { sessionStore, SessionStore } from './sessionStore.svelte.js';
 export { activeWindowStore, ActiveWindowStore } from './activeWindowStore.svelte.js';
 export { dubsStore, DubsStore } from './dubsStore.svelte.js';
+export { sessionHistoryStore, SessionHistoryStore } from './sessionHistoryStore.svelte.js';

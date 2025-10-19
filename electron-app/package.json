@@ -50,6 +50,7 @@
 		"@aws-sdk/client-bedrock-runtime": "^3.913.0",
 		"dotenv": "^17.2.3",
 		"electron-squirrel-startup": "^1.0.1",
+		"electron-store": "^11.0.2",
 		"get-windows": "^9.2.3"
 	}
 }

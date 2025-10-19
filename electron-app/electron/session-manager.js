@@ -3,6 +3,8 @@
  * Handles focus session state and lifecycle management (Pomodoro timer)
  */
 
+import { SessionHistoryManager } from './session-history.js';
+
 export class SessionManager {
 	constructor() {
 		this.state = {
@@ -18,6 +20,7 @@ export class SessionManager {
 		this.windows = new Set(); // Store window references
 		this.distractionManager = null; // Reference to distraction manager
 		this.timerInterval = null; // Interval for checking if time is up
+		this.historyManager = new SessionHistoryManager(); // Session history manager
 	}
 
 	/**
@@ -191,6 +194,23 @@ export class SessionManager {
 			this.timerInterval = null;
 		}
 
+		// Get final state before marking inactive
+		const finalState = this.getState();
+
+		// Save session to history if it was active
+		if (this.state.isActive && this.state.startTime) {
+			const savedSession = this.historyManager.saveSession({
+				taskName: this.state.taskName,
+				duration: this.state.duration,
+				startTime: this.state.startTime,
+				elapsedTime: finalState.elapsedTime,
+				focusStateHistory: this.state.focusStateHistory
+			});
+
+			// Broadcast session completion with the saved session data
+			this.broadcast('session-completed', savedSession);
+		}
+
 		this.state.isActive = false;
 		this.state.isPaused = false;
 
@@ -258,6 +278,14 @@ export class SessionManager {
 	 */
 	isSessionPaused() {
 		return this.state.isPaused;
+	}
+
+	/**
+	 * Get session history manager
+	 * @returns {SessionHistoryManager} History manager instance
+	 */
+	getHistoryManager() {
+		return this.historyManager;
 	}
 
 	/**

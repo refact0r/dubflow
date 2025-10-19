@@ -1,5 +1,6 @@
 <script>
 	import SettingsIcon from '~icons/ph/gear-duotone';
+	import HistoryIcon from '~icons/ph/clock-clockwise-duotone';
 
 	let { children } = $props();
 </script>
@@ -7,7 +8,10 @@
 <div class="container">
 	<nav class="nav">
 		<a href="/" class="logo">Dubflow</a>
-		<a href="/#/settings" class="settings"><SettingsIcon /></a>
+		<div class="nav-icons">
+			<a href="/#/history" class="nav-icon"><HistoryIcon /></a>
+			<a href="/#/settings" class="nav-icon"><SettingsIcon /></a>
+		</div>
 	</nav>
 
 	<main>
@@ -48,18 +52,27 @@
 		font-size: 2.5rem;
 	}
 
-	.settings {
-		font-size: 1.5rem;
-		padding: 0.5rem;
+	.nav-icons {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
 	}
 
-	.settings:hover {
+	.nav-icon {
+		font-size: 1.5rem;
+		padding: 0.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.nav-icon:hover {
 		opacity: 0.7;
 	}
 
 	main {
 		flex: 1;
 		z-index: 1;
-		padding: 1rem 2rem 2rem 2rem;
+		padding: 0rem 2rem 2rem 2rem;
 	}
 </style>

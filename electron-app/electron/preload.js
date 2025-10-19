@@ -10,6 +10,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	stopSession: () => ipcRenderer.send('stop-session'),
 	getSessionState: () => ipcRenderer.invoke('get-session-state'),
 
+	// Session history
+	getSessionHistory: (count) => ipcRenderer.invoke('get-session-history', count),
+	getDailyStats: (date) => ipcRenderer.invoke('get-daily-stats', date),
+	getAllTimeStats: () => ipcRenderer.invoke('get-alltime-stats'),
+
 	// Overlay control
 	toggleOverlay: (visible) => ipcRenderer.send('toggle-overlay', visible),
 	setDubsState: (state) => ipcRenderer.send('set-dubs-state', state),
@@ -33,6 +38,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	},
 	onSessionUpdated: (callback) => {
 		ipcRenderer.on('session-updated', (event, data) => callback(data));
+	},
+	onSessionCompleted: (callback) => {
+		ipcRenderer.on('session-completed', (event, session) => callback(session));
 	},
 	onDubsStateChange: (callback) => {
 		ipcRenderer.on('dubs-state-change', (event, state) => callback(state));

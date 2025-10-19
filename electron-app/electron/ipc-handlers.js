@@ -47,6 +47,22 @@ export const setupIPCHandlers = ({
 		return sessionManager.getState();
 	});
 
+	// Session History
+	ipcMain.handle('get-session-history', (event, count) => {
+		const historyManager = sessionManager.getHistoryManager();
+		return historyManager.getRecentSessions(count || 10);
+	});
+
+	ipcMain.handle('get-daily-stats', (event, date) => {
+		const historyManager = sessionManager.getHistoryManager();
+		return historyManager.getDailyStats(date ? new Date(date) : new Date());
+	});
+
+	ipcMain.handle('get-alltime-stats', () => {
+		const historyManager = sessionManager.getHistoryManager();
+		return historyManager.getAllTimeStats();
+	});
+
 	// Emergency stop for distraction manager
 	ipcMain.on('emergency-stop-distraction', () => {
 		if (distractionManager) {

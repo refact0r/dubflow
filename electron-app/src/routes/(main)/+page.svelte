@@ -1,5 +1,5 @@
 <script>
-	import { sessionStore } from '$lib/stores';
+	import { sessionStore, sessionHistoryStore } from '$lib/stores';
 
 	const sessionDuration = 30 * 60; // 30 minutes in seconds for timeline display
 
@@ -47,6 +47,52 @@
 		}
 
 		return Math.round((focusedTime / currentElapsed) * 100);
+	}
+
+	/**
+	 * Get timeline segments for a completed session
+	 * @param {Object} session - Completed session object
+	 * @returns {Array} Array of segments with {state, widthPercent}
+	 */
+	function getHistorySegments(session) {
+		const history = session.focusStateHistory;
+		if (!history || history.length === 0) {
+			return [{ state: 'focused', widthPercent: 100 }];
+		}
+
+		const actualDuration = Math.floor((session.endTime - session.startTime) / 1000); // in seconds
+		if (actualDuration <= 0) {
+			return [{ state: 'focused', widthPercent: 100 }];
+		}
+
+		const segments = [];
+
+		for (let i = 0; i < history.length; i++) {
+			const event = history[i];
+			const nextEvent = history[i + 1];
+
+			const segmentStart = event.elapsedTime ?? 0;
+			const segmentEnd = nextEvent ? (nextEvent.elapsedTime ?? 0) : actualDuration;
+
+			const segmentDuration = segmentEnd - segmentStart;
+
+			if (segmentDuration <= 0) {
+				continue;
+			}
+
+			const widthPercent = (segmentDuration / actualDuration) * 100;
+
+			segments.push({
+				state: event.state,
+				widthPercent: Math.max(0.1, widthPercent)
+			});
+		}
+
+		if (segments.length === 0) {
+			return [{ state: 'focused', widthPercent: 100 }];
+		}
+
+		return segments;
 	}
 
 	/**
@@ -279,19 +325,27 @@
 			<h3 class="section-title">Today's Focus</h3>
 			<div class="stats-grid">
 				<div class="stat-card">
-					<div class="stat-value">2h 15m</div>
-					<div class="stat-label">Total Time</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">4</div>
-					<div class="stat-label">Sessions</div>
-				</div>
-				<div class="stat-card">
-					<div class="stat-value">87%</div>
+					<div class="stat-value">
+						{sessionHistoryStore.dailyStats.averageFocusScore > 0
+							? `${sessionHistoryStore.dailyStats.averageFocusScore}%`
+							: '--'}
+					</div>
 					<div class="stat-label">Focus Score</div>
 				</div>
 				<div class="stat-card">
-					<div class="stat-value">3🔥</div>
+					<div class="stat-value">{sessionHistoryStore.dailyStats.sessionCount}</div>
+					<div class="stat-label">Sessions</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">
+						{sessionHistoryStore.dailyStats.totalTime > 0
+							? sessionHistoryStore.formatDuration(sessionHistoryStore.dailyStats.totalTime)
+							: '0 min'}
+					</div>
+					<div class="stat-label">Total Time</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-value">{sessionHistoryStore.dailyStats.dayStreak}</div>
 					<div class="stat-label">Day Streak</div>
 				</div>
 			</div>
@@ -300,44 +354,40 @@
 		<!-- Session History Section -->
 		<div class="session-history">
 			<h3 class="section-title">Recent Sessions</h3>
-			<div class="history-list">
-				<div class="history-item">
-					<div class="history-header">
-						<div class="history-task">Complete project proposal</div>
-						<div class="history-time">45 min</div>
-					</div>
-					<div class="history-footer">
-						<div class="focus-bar">
-							<div class="focus-fill" style="width: 92%"></div>
+			{#if sessionHistoryStore.recentSessions.length > 0}
+				<div class="history-list">
+					{#each sessionHistoryStore.recentSessions as session (session.id)}
+						<div class="history-item">
+							<div class="history-header">
+								<div class="history-task">{session.taskName}</div>
+								<div class="history-score">{session.focusScore}%</div>
+							</div>
+							<div class="focus-bar">
+								{#each getHistorySegments(session) as segment}
+									<div
+										class="segment {segment.state}"
+										style="width: {segment.widthPercent}%;"
+									></div>
+								{/each}
+							</div>
+							<div class="history-footer">
+								<div class="history-timestamp">
+									{sessionHistoryStore.formatRelativeTime(session.completedAt)}
+								</div>
+								<div class="history-time">
+									{sessionHistoryStore.formatDuration(
+										Math.floor((session.endTime - session.startTime) / 1000)
+									)}
+								</div>
+							</div>
 						</div>
-						<div class="history-score">92% focus</div>
-					</div>
+					{/each}
 				</div>
-				<div class="history-item">
-					<div class="history-header">
-						<div class="history-task">Study for exam</div>
-						<div class="history-time">25 min</div>
-					</div>
-					<div class="history-footer">
-						<div class="focus-bar">
-							<div class="focus-fill" style="width: 78%"></div>
-						</div>
-						<div class="history-score">78% focus</div>
-					</div>
+			{:else}
+				<div class="empty-state">
+					<p>No sessions yet. Start your first session to track your focus!</p>
 				</div>
-				<div class="history-item">
-					<div class="history-header">
-						<div class="history-task">Code review</div>
-						<div class="history-time">60 min</div>
-					</div>
-					<div class="history-footer">
-						<div class="focus-bar">
-							<div class="focus-fill" style="width: 95%"></div>
-						</div>
-						<div class="history-score">95% focus</div>
-					</div>
-				</div>
-			</div>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -369,10 +419,10 @@
 			/>
 			<div class="duration-selector">
 				<button
-					class="duration-btn text {modalDuration === 2 ? 'selected' : ''}"
-					onclick={() => selectDuration(2)}
+					class="duration-btn text {modalDuration === 1 ? 'selected' : ''}"
+					onclick={() => selectDuration(1)}
 				>
-					2 min
+					1 min
 				</button>
 				<button
 					class="duration-btn text {modalDuration === 25 ? 'selected' : ''}"
@@ -380,12 +430,12 @@
 				>
 					25 min
 				</button>
-				<button
+				<!-- <button
 					class="duration-btn text {modalDuration === 45 ? 'selected' : ''}"
 					onclick={() => selectDuration(45)}
 				>
 					45 min
-				</button>
+				</button> -->
 				<button
 					class="duration-btn text {modalDuration === 60 ? 'selected' : ''}"
 					onclick={() => selectDuration(60)}
@@ -487,7 +537,6 @@
 	.time-labels {
 		display: flex;
 		justify-content: space-between;
-		margin-top: 0.5rem;
 	}
 
 	.time-label {
@@ -716,35 +765,66 @@
 		font-size: 1.125rem;
 	}
 
-	.history-time {
-		color: var(--txt-2);
-	}
-
 	.history-footer {
 		display: flex;
+		justify-content: space-between;
 		align-items: center;
-		gap: 0.75rem;
+		margin-top: 0.75rem;
+	}
+
+	.history-time {
+		font-size: 0.875rem;
+		color: var(--txt-2);
+		text-align: right;
 	}
 
 	.focus-bar {
-		flex: 1;
+		width: 100%;
 		height: 0.5rem;
 		background: var(--bg-1);
 		border: 1px solid var(--txt-1);
 		border-radius: 0.25rem;
 		overflow: hidden;
+		display: flex;
+		margin-top: 0.75rem;
 	}
 
-	.focus-fill {
+	.focus-bar .segment {
 		height: 100%;
+		border-right: 1px solid var(--txt-1);
+	}
+
+	.focus-bar .segment:last-child {
+		border-right: none;
+	}
+
+	.focus-bar .segment.focused {
 		background: var(--acc-1);
-		transition: width 0.3s ease;
+	}
+
+	.focus-bar .segment.distracted {
+		background: var(--alt-1);
 	}
 
 	.history-score {
+		color: var(--txt-2);
+	}
+
+	.history-timestamp {
 		font-size: 0.875rem;
 		color: var(--txt-2);
-		min-width: 4rem;
-		text-align: right;
+	}
+
+	.empty-state {
+		padding: 2rem;
+		text-align: center;
+		color: var(--txt-2);
+		background: var(--bg-2);
+		border: 1px solid var(--txt-1);
+		border-radius: 1rem;
+	}
+
+	.empty-state p {
+		margin: 0;
 	}
 </style>
