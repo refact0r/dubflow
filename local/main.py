@@ -125,8 +125,8 @@ class LockInDubsVision:
             if self.userFocusState == True:
                 # User remains focused - no action needed
                 # Let's try forcing a bit of focus event sending
-                if self.stats["total_frames"] % 25 == 0:
-                    self.ipc_communicator.send_focus_event(True, context_data)
+                # if self.stats["total_frames"] % 10 == 0:
+                #     self.ipc_communicator.send_focus_event(True, context_data)
                 pass
             else:
                 # Possible regaining of focus

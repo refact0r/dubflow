@@ -35,8 +35,9 @@ export class DistractionManager extends EventEmitter {
 		this.lastTriggerSource = null;
 
 		// Configuration
-		this.DISTRACTION_THRESHOLD = 1000; // 2 seconds in milliseconds
+		this.DISTRACTION_THRESHOLD = 500; // 2 seconds in milliseconds
 		this.CHECK_INTERVAL = 500; // Check every 500 milliseconds
+		this.audioInitiated = false;
 
 		// Registered windows for broadcasting
 		this.windows = new Set();
@@ -352,7 +353,7 @@ export class DistractionManager extends EventEmitter {
 
 			// Emit event for other listeners
 			this.emit('distraction-occurred', alertPackage);
-			this.DISTRACTION_THRESHOLD = 6000;
+			this.DISTRACTION_THRESHOLD = 5000;
 		} catch (error) {
 			console.error('❌ Error handling distraction threshold:', error);
 		}
