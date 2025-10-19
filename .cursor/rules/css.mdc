@@ -1,6 +1,6 @@
 ---
 description: "CSS rules"
-globs: /electron-app/**.css
+globs: /electron-app/**.{css,svelte}
 alwaysApply: false
 ---
 

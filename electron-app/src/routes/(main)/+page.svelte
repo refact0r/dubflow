@@ -1,68 +1,26 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
-	import { sessionStore, activeWindowStore, dubsStore } from '$lib/stores';
+	// Mockup data
+	const sessionDuration = 30 * 60; // 30 minutes in seconds
+	const events = [
+		{ type: 'focus', start: 0, duration: 300 },
+		{ type: 'distraction', start: 300, duration: 120 },
+		{ type: 'focus', start: 420, duration: 480 },
+		{ type: 'distraction', start: 900, duration: 120 },
+		{ type: 'focus', start: 1020, duration: 480 },
+		{ type: 'current', start: 1500, duration: 150 }
+	];
 
-	let taskNameInput = $state('');
-	let elapsedDisplay = $state('00:00');
-	let timerInterval = null;
+	let currentTime = $state(1650); // 27.5 minutes
+	let taskName = $state('Deep work - Design mockups');
 
-	// Format seconds to MM:SS
 	function formatTime(seconds) {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
 		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 	}
-
-	// Update timer display every second when active
-	function startTimerDisplay() {
-		if (timerInterval) clearInterval(timerInterval);
-		timerInterval = setInterval(() => {
-			if (sessionStore.isActive) {
-				elapsedDisplay = formatTime(sessionStore.currentElapsed);
-			}
-		}, 1000);
-	}
-
-	function handleStartSession() {
-		if (taskNameInput.trim()) {
-			sessionStore.start(taskNameInput);
-			startTimerDisplay();
-		}
-	}
-
-	function handleStopSession() {
-		sessionStore.stop();
-		if (timerInterval) {
-			clearInterval(timerInterval);
-			timerInterval = null;
-		}
-	}
-
-	function toggleOverlay() {
-		dubsStore.toggleOverlay();
-	}
-
-	// Calculate focus percentage
-	function getFocusPercentage() {
-		if (sessionStore.currentElapsed === 0) return 100;
-		return Math.round((sessionStore.focusTime / sessionStore.currentElapsed) * 100);
-	}
-
-	onMount(() => {
-		// Initialize display
-		elapsedDisplay = formatTime(sessionStore.currentElapsed);
-		if (sessionStore.isActive) {
-			startTimerDisplay();
-		}
-	});
-
-	onDestroy(() => {
-		if (timerInterval) {
-			clearInterval(timerInterval);
-		}
-	});
 </script>
 
+<<<<<<< HEAD
 <div class="dashboard">
 	<header>
 		<h1>🐕 LockInDubs</h1>
@@ -167,140 +125,79 @@
 			</div>
 		</section>
 	</main>
+=======
+<div class="container">
+	<div class="timer">
+		<h1>{taskName}</h1>
+		<div class="time">
+			{formatTime(currentTime)} / {formatTime(sessionDuration)}
+		</div>
+		<div class="buttons">
+			<button>Pause</button>
+			<button>End</button>
+		</div>
+	</div>
+
+	<div class="timeline">
+		<h2>Timeline</h2>
+		<div class="bar">
+			{#each events as event}
+				<div
+					class="segment {event.type}"
+					style="left: {(event.start / sessionDuration) * 100}%; width: {(event.duration /
+						sessionDuration) *
+						100}%;"
+				></div>
+			{/each}
+			<div class="indicator" style="left: {(currentTime / sessionDuration) * 100}%;"></div>
+		</div>
+	</div>
+>>>>>>> fe257f30c1380b79efc8aff14d24303137724160
 </div>
 
 <style>
-	.dashboard {
-		min-height: 100vh;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
+	.container {
 		padding: 2rem;
-	}
-
-	header {
-		text-align: center;
-		margin-bottom: 2rem;
-	}
-
-	h1 {
-		font-size: 2.5rem;
-		margin: 0;
-		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-	}
-
-	.subtitle {
-		margin: 0.5rem 0 0 0;
-		opacity: 0.9;
-		font-size: 1.1rem;
-	}
-
-	main {
 		max-width: 800px;
 		margin: 0 auto;
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	section {
-		background: rgba(255, 255, 255, 0.95);
-		border-radius: 12px;
-		padding: 1.5rem;
-		color: #333;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-	}
-
-	h2 {
-		margin: 0 0 1rem 0;
-		font-size: 1.5rem;
-		color: #667eea;
-	}
-
-	h3 {
-		margin: 1rem 0 0.5rem 0;
-		font-size: 1rem;
-		color: #555;
-	}
-
-	/* Session Controls */
-	.start-session {
-		display: flex;
-		gap: 1rem;
-	}
-
-	.task-input {
-		flex: 1;
-		padding: 0.75rem;
-		border: 2px solid #ddd;
-		border-radius: 8px;
-		font-size: 1rem;
-	}
-
-	.task-input:focus {
-		outline: none;
-		border-color: #667eea;
-	}
-
-	.active-session {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		align-items: center;
-	}
-
-	.task-info {
-		display: flex;
-		gap: 0.5rem;
-		align-items: baseline;
-	}
-
-	.task-label {
-		font-weight: 600;
-		color: #666;
-	}
-
-	.task-name {
-		font-size: 1.2rem;
-		color: #333;
 	}
 
 	.timer {
+		margin-bottom: 3rem;
+		text-align: center;
+	}
+
+	.timer h1 {
+		font-size: 1.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.time {
 		font-size: 3rem;
 		font-weight: bold;
-		color: #667eea;
-		font-family: 'Monaco', monospace;
+		margin: 1rem 0;
 	}
 
-	/* Buttons */
-	.btn {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		border-radius: 8px;
-		font-size: 1rem;
-		font-weight: 600;
+	.buttons {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+		margin-top: 1rem;
+	}
+
+	button {
+		padding: 0.5rem 1.5rem;
+		border: 1px solid var(--txt-3);
+		background: white;
+		border-radius: 4px;
 		cursor: pointer;
-		transition: all 0.2s;
 	}
 
-	.btn:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+	button:hover {
+		background: var(--bg-2);
 	}
 
-	.btn-primary {
-		background: #667eea;
-		color: white;
-	}
-
-	.btn-primary:hover {
-		background: #5568d3;
-	}
-
-	.btn-danger {
-		background: #f56565;
-		color: white;
-	}
-
+<<<<<<< HEAD
 	.btn-danger:hover {
 		background: #e53e3e;
 	}
@@ -322,119 +219,43 @@
 		padding: 1rem;
 		background: #f7fafc;
 		border-radius: 8px;
+=======
+	.timeline h2 {
+		font-size: 1.2rem;
+>>>>>>> fe257f30c1380b79efc8aff14d24303137724160
 		margin-bottom: 1rem;
 	}
 
-	.window-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.app-name {
-		font-weight: 600;
-		font-size: 1.1rem;
-	}
-
-	.window-title {
-		color: #666;
-		font-size: 0.9rem;
-	}
-
-	.window-url {
-		color: #4a90e2;
-		font-size: 0.85rem;
-		font-family: 'Monaco', monospace;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		max-width: 400px;
-	}
-
-	.productivity-badge {
-		padding: 0.5rem 1rem;
-		border-radius: 20px;
-		font-size: 0.9rem;
-		font-weight: 600;
-	}
-
-	.productivity-badge.productive {
-		background: #c6f6d5;
-		color: #276749;
-	}
-
-	.productivity-badge:not(.productive) {
-		background: #fed7d7;
-		color: #742a2a;
-	}
-
-	.recent-apps ul {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.recent-apps li {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem;
-		background: #f7fafc;
+	.bar {
+		position: relative;
+		height: 40px;
+		background: var(--bg-2);
 		border-radius: 4px;
 	}
 
-	.app-icon {
-		font-size: 0.9rem;
+	.segment {
+		position: absolute;
+		height: 100%;
+		border-radius: 4px;
 	}
 
-	/* Stats */
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-		gap: 1rem;
+	.focus {
+		background: #22c55e;
 	}
 
-	.stat-card {
-		text-align: center;
-		padding: 1rem;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		border-radius: 8px;
-		color: white;
+	.distraction {
+		background: #f59e0b;
 	}
 
-	.stat-value {
-		font-size: 2rem;
-		font-weight: bold;
-		margin-bottom: 0.5rem;
+	.current {
+		background: var(--acc-1);
 	}
 
-	.stat-label {
-		font-size: 0.9rem;
-		opacity: 0.9;
-	}
-
-	/* Dubs Controls */
-	.controls-grid {
-		display: flex;
-		gap: 1rem;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.dubs-state {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.state-badge {
-		padding: 0.5rem 1rem;
-		background: #667eea;
-		color: white;
-		border-radius: 20px;
-		font-weight: 600;
+	.indicator {
+		position: absolute;
+		width: 2px;
+		height: 100%;
+		background: var(--txt-1);
+		transform: translateX(-50%);
 	}
 </style>
