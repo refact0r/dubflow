@@ -63,7 +63,42 @@ class PythonIPCInterface extends EventEmitter {
 						// Parse JSON message
 						const eventData = JSON.parse(line);
 
-						console.log('Received data: ', eventData);
+                        // IF THE DATA IS AWS-REKOG RELATED
+                        if(eventData.hasOwnProperty("scene_analysis")) {
+                            console.log("AWS Rekognition Detects...");
+                            console.log(eventData);
+                        }
+
+                        // IF THE DATA IS A TRIGGER!!
+                        else {
+                            // Emit events based on the event type
+                            if (eventData.event === 'user_unfocused') {
+                                console.log('User UNFOCUSED! LOCK BACK IN!!');
+                                // Emit distraction detected event
+                                this.emit('distraction_detected', eventData);
+                                this.emit('focus_update', {
+                                    focused: false,
+                                    ...eventData
+                                });
+                            } else if (eventData.event === 'user_focused') {
+                                console.log('User FOCUSED! GOOD JOB!!');
+                                // Emit focus restored event
+                                this.emit('focus_restored', eventData);
+                                this.emit('focus_update', {
+                                    focused: true,
+                                    ...eventData
+                                });
+                            }
+                            
+                            console.log('TIME: ', eventData.timestamp)
+
+                            try {
+                                const data = await this.requestData();
+                                console.log('Received data:', data);
+                            } catch (error) {
+                                console.error('Failed to get data:', error.message);
+                            }
+                        }
                         // EVENT DATA SCHEMA:
                         /*
                         event = {
@@ -86,46 +121,8 @@ class PythonIPCInterface extends EventEmitter {
                             }
                         }
                         */
-                        var eventTypeTrigger = false;
-						// Emit events based on the event type
-						if (eventData.event === 'user_unfocused') {
-                            eventTypeTrigger = true;
-							console.log('User UNFOCUSED! LOCK BACK IN!!');
-							// Emit distraction detected event
-							this.emit('distraction_detected', eventData);
-							this.emit('focus_update', {
-								focused: false,
-								...eventData
-							});
-						} else if (eventData.event === 'user_focused') {
-                            eventTypeTrigger = true;
-							console.log('User FOCUSED! GOOD JOB!!');
-							// Emit focus restored event
-							this.emit('focus_restored', eventData);
-							this.emit('focus_update', {
-								focused: true,
-								...eventData
-							});
-						}
-                        
-                        console.log('TIME: ', eventData.timestamp)
 
-                        // AWS Rekognition data ALL OUTPUTTED HERE!! Everything about room,
-                        // distractions, objects nearby, user's surroundings, etc will be here.
-                        // console.log(eventData.context.rekognition_data);
-                        //this.printRekognitionContext(eventData.context.rekognition_data)
-
-                        
-                        // PYTHON COMMUNICATION DEMO
-                        // Request data from Python
-                        if(eventTypeTrigger) {
-                            try {
-                                const data = await this.requestData();
-                                console.log('Received data:', data);
-                            } catch (error) {
-                                console.error('Failed to get data:', error.message);
-                            }
-                        }
+                        // AWS DATA SCHEMA listed in aws_schema.json
 
 					} catch (error) {
 						console.error('❌ Failed to parse message:', error.message);

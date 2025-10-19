@@ -10,6 +10,42 @@
 	const ANIMATION_DELAY = (3 / 7) * 1000; // Exactly 4/7 seconds in milliseconds (~571ms)
 
 	/**
+	 * Send push notification via Pushover
+	 */
+	async function sendPushoverNotification(message = 'Hey! Get back to work and stay focused! 🎯') {
+		try {
+			console.log('📱 Sending Pushover notification...');
+
+			const PUSHOVER_TOKEN = import.meta.env.VITE_PUSHOVER_TOKEN;
+			const PUSHOVER_USER = import.meta.env.VITE_PUSHOVER_USER;
+
+			const response = await fetch('https://api.pushover.net/1/messages.json', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					token: PUSHOVER_TOKEN,
+					user: PUSHOVER_USER,
+					message: message,
+					title: '🐶 Dubs',
+					priority: 1, // High priority
+					sound: 'pushover', // Default sound
+				}),
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				console.log('✅ Pushover notification sent:', result);
+			} else {
+				console.error('❌ Pushover notification failed:', response.status, response.statusText);
+			}
+		} catch (error) {
+			console.error('❌ Pushover notification error:', error);
+		}
+	}
+
+	/**
 	 * Play voice notification using ElevenLabs
 	 */
 	async function playVoiceNotification() {
@@ -69,6 +105,8 @@
 							dubsStore.setState('dubs_heavy_bark');
 							// Play voice notification when barking starts
 							playVoiceNotification();
+							// Send push notification to user's device
+							sendPushoverNotification();
 						}
 					}, 3000);
 				}, ANIMATION_DELAY);
@@ -141,6 +179,7 @@
 							// Still unfocused
 							dubsStore.setState('dubs_heavy_bark');
 							playVoiceNotification();
+							sendPushoverNotification();
 						}
 					}, 3000);
 				}, ANIMATION_DELAY);

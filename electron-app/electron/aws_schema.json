@@ -1,0 +1,126 @@
+{
+    "timestamp": "2025-01-19T01:57:32.667754+00:00",
+    "scene_analysis": {
+      "available": true,
+      "labels": [
+        {
+          "name": "white board",
+          "confidence": 99.64716339111328
+        },
+        {
+          "name": "face",
+          "confidence": 98.31800842285156
+        },
+        {
+          "name": "head",
+          "confidence": 98.31800842285156
+        },
+        {
+          "name": "person",
+          "confidence": 98.31800842285156
+        },
+        {
+          "name": "necklace",
+          "confidence": 91.00801086425781
+        },
+        {
+          "name": "boy",
+          "confidence": 79.49817657470703
+        },
+        {
+          "name": "male",
+          "confidence": 79.49817657470703
+        },
+        {
+          "name": "teen",
+          "confidence": 79.49817657470703
+        },
+        {
+          "name": "teacher",
+          "confidence": 56.762081146240234
+        },
+        {
+          "name": "portrait",
+          "confidence": 55.7156982421875
+        }
+      ],
+      "distraction_objects": [
+        {
+          "object": "phone",
+          "confidence": 85.5
+        },
+        {
+          "object": "laptop",
+          "confidence": 92.3
+        }
+      ],
+      "total_labels": 10,
+      "distraction_count": 2
+    },
+    "face_analysis": {
+      "available": true,
+      "faces": [
+        {
+          "confidence": 99.99262237548828,
+          "bounding_box": {
+            "Width": 0.18681201338768005,
+            "Height": 0.34195810556411743,
+            "Left": 0.43595895171165466,
+            "Top": 0.26102912425994873
+          },
+          "emotions": [
+            {
+              "type": "CALM",
+              "confidence": 96.09375
+            },
+            {
+              "type": "SAD",
+              "confidence": 2.02484130859375
+            },
+            {
+              "type": "CONFUSED",
+              "confidence": 0.46888986229896545
+            },
+            {
+              "type": "DISGUSTED",
+              "confidence": 0.05030632019042969
+            },
+            {
+              "type": "ANGRY",
+              "confidence": 0.04973411560058594
+            },
+            {
+              "type": "SURPRISED",
+              "confidence": 0.009603798389434814
+            },
+            {
+              "type": "HAPPY",
+              "confidence": 0.005340576171875
+            },
+            {
+              "type": "FEAR",
+              "confidence": 0.0001728534698486328
+            }
+          ],
+          "age_range": {
+            "Low": 19,
+            "High": 25
+          },
+          "gender": {
+            "Value": "Male",
+            "Confidence": 99.95264434814453
+          },
+          "eyes_open": {
+            "Value": true,
+            "Confidence": 95.23379516601562
+          },
+          "mouth_open": {
+            "Value": false,
+            "Confidence": 99.74063873291016
+          }
+        }
+      ],
+      "face_count": 1
+    },
+    "distraction_level": "low"
+  }
