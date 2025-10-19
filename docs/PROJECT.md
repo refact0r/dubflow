@@ -10,10 +10,7 @@ LockInDubs features "Dubs," (Dubs is the UW mascot) an intelligent, animated dog
 
 **States:**
 
-- **When focused** -> Dubs sleeps or idles peacefully
-- **When distracted** -> Dubs wakes up, reacts, and delivers a witty AI-generated reminder to "lock back in"
-- **When goals are met** -> User can feed or reward Dubs, unlocking treats, decorations, and tokens
-- Other states TBD
+Dubs reacts to user focus behavior through various animated states (currently being refined).
 
 ## Product Vision
 
@@ -34,11 +31,7 @@ Create a fun, motivational companion that merges accountability, humor, and data
 ### 3. Overlay Character System
 
 - Always-on animated character (Dubs) rendered on screen
-- **States:**
-  - Sleeping (focused)
-  - Alert (noticing distraction)
-  - Reacting (AI message / animation)
-- Overlay should have a transparent background and minimal performance impact
+- Multiple animated states that react to user focus behavior
 
 ### 4. AI Interaction
 
@@ -63,13 +56,61 @@ Create a fun, motivational companion that merges accountability, humor, and data
 
 - **Platform**: Electron (for overlay + dashboard) with Vite. Target macOS.
 - **Framework**: SvelteKit and Svelte 5
-- **Overlay**: Pixel art animated sprite system
+- **Overlay**: GIF-based animated sprite system
 
 ### ML/Tracking
 
-- **Focus Detection:** OpenCV for face and eye tracking.
-- **System Access:** OS APIs for active window tracking.
+- **Focus Detection:** Python with OpenCV for face/eye tracking
+- **Scene Analysis:** AWS Rekognition for webcam video analysis
+- **System Access:** Node get-windows for active window tracking
 
 ### Backend
 
-TBD
+- **Python Server**: TCP socket server for real-time communication between Python vision system and Electron app
+
+## Project Structure
+
+### `/local/` - Python Vision System
+
+The Python backend handles all webcam-based monitoring:
+
+- `main.py` - Main event loop and entry point. Manages camera capture, focus detection pipeline, and coordinates all components
+- `focus_detector_opencv.py` - OpenCV-based focus detection using face landmarks and eye aspect ratio (EAR)
+- `focus_detector.py` - Base focus detector interface/abstract class
+- `aws_rekognition.py` - AWS Rekognition integration for scene analysis and context detection
+- `tcp_communication.py` - TCP socket server that sends focus events to Electron app
+- `ipc_communication.py` - IPC communication utilities
+- `config.py` - Configuration settings (frame rates, thresholds, camera settings, etc.)
+- `setup.py` - Setup and installation script
+- `requirements.txt` - Python dependencies
+
+### `/electron-app/` - Main Application
+
+The Electron + SvelteKit application.
+
+#### `/electron-app/electron/` - Electron Core Logic
+
+Non-frontend application logic:
+
+- `main.js` - Main Electron process, window management and app lifecycle
+- `py_interfacer.js` - Manages Python process spawning and IPC communication with Python backend
+- `ipc-handlers.js` - IPC handlers for renderer-to-main communication
+- `preload.js` - Preload script for secure IPC exposure to renderer
+- `window-tracker.js` - Active window detection using `get-windows`, classifies productive vs. distracting apps/sites
+- `session-manager.js` - Focus session state management and lifecycle (start/stop sessions, track metrics)
+- `focus-config.js` - Configuration for productive/distracting apps and websites classification
+
+#### `/electron-app/src/` - SvelteKit Frontend
+
+Standard SvelteKit structure:
+
+- `/routes/+layout.svelte` - Root layout for the app
+- `/routes/+page.svelte` - Main dashboard page
+- `/routes/overlay/+page.svelte` - Dubs overlay window (transparent, always-on-top)
+- `/routes/settings/+page.svelte` - Settings page
+- `/lib/stores/` - Svelte 5 stores for state management (using runes)
+- `/lib/websocket.js` - WebSocket client class (placeholder for future Python vision server integration)
+
+#### `/electron-app/static/` - Assets
+
+Dubs animation GIFs.

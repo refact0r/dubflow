@@ -1,6 +1,6 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
-	import { sessionStore, activeWindowStore, dubsStore } from '$lib/stores.svelte.js';
+	import { sessionStore, activeWindowStore, dubsStore } from '$lib/stores';
 
 	let taskNameInput = $state('');
 	let elapsedDisplay = $state('00:00');
