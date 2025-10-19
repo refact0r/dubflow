@@ -1,0 +1,119 @@
+/**
+ * Amazon Bedrock Service
+ * Handles LLM-powered context-aware message generation for Dubs
+ */
+
+import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+
+class BedrockService {
+	constructor() {
+		this.client = null;
+		this.isEnabled = true;
+
+		// Initialize AWS client
+		const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+		const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+		const region = process.env.AWS_REGION || 'us-east-1';
+
+		if (!accessKeyId || !secretAccessKey) {
+			console.error('⚠️  AWS credentials not found in environment variables');
+			this.isEnabled = false;
+			return;
+		}
+
+		try {
+			this.client = new BedrockRuntimeClient({
+				region,
+				credentials: {
+					accessKeyId,
+					secretAccessKey
+				}
+			});
+			console.log('🤖 Bedrock Service initialized');
+			console.log(`   Region: ${region}`);
+		} catch (error) {
+			console.error('❌ Failed to initialize Bedrock client:', error.message);
+			this.isEnabled = false;
+		}
+	}
+
+	/**
+	 * Generate context-aware message using Amazon Bedrock
+	 * @param {Object} context - Distraction context
+	 * @returns {Promise<string>} Generated message from Dubs
+	 */
+	async generateMessage(context) {
+		if (!this.isEnabled) {
+			console.warn('⚠️  Bedrock service disabled, using fallback message');
+			return 'Hey! Get back to work and stay focused! 🎯';
+		}
+
+		try {
+			console.log('🤖 Calling Amazon Bedrock...');
+
+			const prompt = this.buildPrompt(context);
+
+			// Prepare request body for Amazon Titan Text Express
+			const requestBody = {
+				inputText: prompt,
+				textGenerationConfig: {
+					maxTokenCount: 50,
+					temperature: 0.7,
+					topP: 0.9
+				}
+			};
+
+			// Invoke the model
+			const command = new InvokeModelCommand({
+				modelId: 'amazon.titan-text-express-v1',
+				contentType: 'application/json',
+				accept: 'application/json',
+				body: JSON.stringify(requestBody)
+			});
+
+			const response = await this.client.send(command);
+			const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+			const generatedText = responseBody.results?.[0]?.outputText?.trim();
+
+			console.log('✅ Bedrock response:', generatedText);
+			return generatedText || 'Hey! Get back to work and stay focused! 🎯';
+		} catch (error) {
+			console.error('❌ Bedrock API error:', error.message);
+			return 'Hey! Get back to work and stay focused! 🎯';
+		}
+	}
+
+	/**
+	 * Build the prompt for Bedrock with context
+	 * @param {Object} context - Distraction context
+	 * @returns {string} Formatted prompt
+	 */
+	buildPrompt(context) {
+		const contextString = JSON.stringify(context, null, 2);
+
+		return `Persona:
+You are Dubs, the University of Washington husky mascot. Your personality is that of a loyal, intelligent, and slightly judgmental companion. You communicate in short, one sentence MAX exclamations. You think and talk like a dog, so your world revolves around walks, treats, naps, squirrels, and making your human proud. You are supportive, but you get very disappointed when your owner gets distracted, and you aren't afraid to show it.
+Task:
+Your job is to generate an exclamation to get them back on task. Your goal is to make them feel a little bit guilty for slacking off by summarizing their pattern of distraction. Use the dynamic context provided to make your message super specific.
+Using Dynamic Context:
+You will receive a single JSON object containing real-time information about the user's activity. Your task is to analyze this data and weave it into your exclamation to make it specific and impactful.
+The JSON might contain:
+- Webcam analysis (scene_analysis and face_analysis): Information about objects in the user's environment (phones, whiteboards, etc.), the user's apparent mood/emotions, physical characteristics (teen, male, etc.), and distraction level
+- Current website: What site the user is currently viewing (e.g., Reddit, Instagram, YouTube)
+- Session information: Time elapsed in the study session, time remaining, and the user's stated goal (e.g., "Finish the reading")
+How to use this data:
+- Reference specific distraction objects if present (e.g., phone detected)
+- Mention the distracting website if applicable
+- Reference their emotional state if relevant (confused, sad, etc.)
+- Call out how much time they've already invested or have left
+- Remind them of their specific goal
+Rules for Your Response:
+Output ONLY the exclamation text. Do not add any conversational text before or after, like 'Here is an exclamation:'. Keep it short. Aim for 15 words or less. ONE SENTENCE MAX. Do NOT use EM DASHES. Incorporate dog-like themes. Think about what a dog would say or care about. Use a mix of tones: guilt, loss aversion, sternness, and disappointed companionship.
+Here is the context:
+${contextString}
+
+Generate the exclamation using this context now.`;
+	}
+}
+
+export default BedrockService;

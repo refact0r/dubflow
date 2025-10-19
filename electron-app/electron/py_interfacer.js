@@ -136,8 +136,7 @@ class PythonIPCInterface extends EventEmitter {
                         }
                         */
 
-                        // AWS DATA SCHEMA listed in aws_schema.json
-
+						// AWS DATA SCHEMA listed in aws_schema.json
 					} catch (error) {
 						console.error('❌ Failed to parse message:', error.message);
 						console.log('Raw message:', line);
@@ -266,23 +265,49 @@ class PythonIPCInterface extends EventEmitter {
 	}
 
 	/**
-	 * Request data from Python system
+	 * Request data from Python system (specifically Rekognition data)
+	 * @param {number} timeout - Timeout in milliseconds (default 5000)
+	 * @returns {Promise<Object>} Rekognition data from Python
 	 */
-	async requestData() {
+	async requestData(timeout = 5000) {
 		return new Promise((resolve, reject) => {
 			if (!this.isConnected) {
 				reject(new Error('Not connected to Python system'));
 				return;
 			}
 
-			const requestSocket = this.socket;
+			// Set up one-time listener for the response
+			const responseHandler = (data) => {
+				// Check if this is a rekognition data response
+				if (data.scene_analysis || data.face_analysis) {
+					this.removeListener('rekognition_data', responseHandler);
+					clearTimeout(timeoutId);
+					resolve(data);
+				}
+			};
 
-			// Connect to Python system
-            const request = {
-                type: 'get_data',
-                timestamp: new Date().toISOString()
-            };
-			requestSocket.write(JSON.stringify(request));
+			// Add temporary event for rekognition data responses
+			this.on('rekognition_data', responseHandler);
+
+			// Set up timeout
+			const timeoutId = setTimeout(() => {
+				this.removeListener('rekognition_data', responseHandler);
+				reject(new Error('Rekognition data request timed out'));
+			}, timeout);
+
+			// Send request to Python
+			const request = {
+				type: 'get_data',
+				timestamp: new Date().toISOString()
+			};
+
+			try {
+				this.socket.write(JSON.stringify(request) + '\n');
+			} catch (error) {
+				this.removeListener('rekognition_data', responseHandler);
+				clearTimeout(timeoutId);
+				reject(error);
+			}
 		});
 	}
 

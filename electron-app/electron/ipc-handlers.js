@@ -10,10 +10,17 @@ import { ipcMain } from 'electron';
  * @param {Object} deps - Dependencies
  * @param {SessionManager} deps.sessionManager - Session manager instance
  * @param {WindowTracker} deps.windowTracker - Window tracker instance
- * @param {BrowserWindow} deps.overlayWindow - Overlay window reference
- * @param {ElevenLabsService} deps.elevenLabsService - ElevenLabs voice service
+ * @param {Function} deps.getOverlayWindow - Function to get overlay window reference
+ * @param {ElevenLabsService} deps.elevenLabsService - ElevenLabs voice service (legacy)
+ * @param {DistractionManager} deps.distractionManager - Distraction manager instance
  */
-export const setupIPCHandlers = ({ sessionManager, windowTracker, getOverlayWindow, elevenLabsService }) => {
+export const setupIPCHandlers = ({
+	sessionManager,
+	windowTracker,
+	getOverlayWindow,
+	elevenLabsService,
+	distractionManager
+}) => {
 	console.log('🔌 Setting up IPC handlers...');
 
 	// Session Management
@@ -56,7 +63,7 @@ export const setupIPCHandlers = ({ sessionManager, windowTracker, getOverlayWind
 		try {
 			console.log('🎙️ Voice notification requested');
 			const result = await elevenLabsService.playDistractionNotification();
-			
+
 			if (result.success) {
 				// Convert buffer to base64 for transmission
 				return {
@@ -80,45 +87,27 @@ export const setupIPCHandlers = ({ sessionManager, windowTracker, getOverlayWind
 };
 
 /**
- * Setup Python IPC event forwarding
+ * Setup Python IPC event forwarding to DistractionManager
  * @param {Object} deps - Dependencies
  * @param {PythonIPCInterface} deps.pythonIPC - Python IPC interface
- * @param {Function} deps.getMainWindow - Function to get main window
- * @param {Function} deps.getOverlayWindow - Function to get overlay window
+ * @param {DistractionManager} deps.distractionManager - Distraction manager instance
  */
-export const setupPythonIPCForwarding = ({ pythonIPC, getMainWindow, getOverlayWindow }) => {
+export const setupPythonIPCForwarding = ({ pythonIPC, distractionManager }) => {
 	console.log('🐍 Setting up Python IPC forwarding...');
 
-	/**
-	 * Broadcast Python event to both windows
-	 * @param {string} channel - IPC channel name
-	 * @param {Object} data - Data to forward
-	 */
-	const broadcastPythonEvent = (channel, data) => {
-		const mainWindow = getMainWindow();
-		const overlayWindow = getOverlayWindow();
-
-		if (mainWindow && !mainWindow.isDestroyed()) {
-			mainWindow.webContents.send(channel, data);
-		}
-		if (overlayWindow && !overlayWindow.isDestroyed()) {
-			overlayWindow.webContents.send(channel, data);
-		}
-	};
-
-	// Forward focus updates from Python
+	// Forward focus updates to DistractionManager
 	pythonIPC.on('focus_update', (data) => {
-		broadcastPythonEvent('vision-focus-update', data);
+		// Update distraction manager with eye tracking state
+		distractionManager.updateEyeState(data.focused);
 	});
 
-	// Forward distraction detection from Python
+	// Legacy event listeners (in case something still uses them)
 	pythonIPC.on('distraction_detected', (data) => {
-		broadcastPythonEvent('vision-distraction-detected', data);
+		distractionManager.updateEyeState(false);
 	});
 
-	// Forward focus restoration from Python
 	pythonIPC.on('focus_restored', (data) => {
-		broadcastPythonEvent('vision-focus-restored', data);
+		distractionManager.updateEyeState(true);
 	});
 
 	console.log('✅ Python IPC forwarding setup complete');
