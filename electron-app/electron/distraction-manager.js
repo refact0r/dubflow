@@ -35,7 +35,7 @@ export class DistractionManager extends EventEmitter {
 		this.lastTriggerSource = null;
 
 		// Configuration
-		this.DISTRACTION_THRESHOLD = 5000; // 10 seconds in milliseconds
+		this.DISTRACTION_THRESHOLD = 5000; // 5 seconds in milliseconds
 		this.CHECK_INTERVAL = 500; // Check every 500 milliseconds
 
 		// Registered windows for broadcasting
