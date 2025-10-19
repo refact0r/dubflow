@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { dubsStore, activeWindowStore, sessionStore } from '$lib/stores.svelte.js';
+	import { dubsStore, activeWindowStore, sessionStore } from '$lib/stores';
 
 	let previousProductiveState = $state(true);
 	let stateTimeout = null;
@@ -50,11 +50,11 @@
 
 			if (!isProductive) {
 				// User got distracted
-				dubsStore.setState('waking');
+				dubsStore.setState('dubs_waking_up');
 
 				// Transition to alert/barking after waking animation
 				stateTimeout = setTimeout(() => {
-					dubsStore.setState('alert');
+					dubsStore.setState('dubs_light_bark');
 
 					// Optionally escalate to barking if distraction continues
 					stateTimeout = setTimeout(() => {
@@ -67,13 +67,13 @@
 				}, 2000);
 			} else {
 				// User returned to focus
-				dubsStore.setState('sleeping');
+				dubsStore.setState('dubs_sleeping');
 			}
 
 			previousProductiveState = isProductive;
 		} else if (!isActive) {
 			// No active session, keep Dubs sleeping
-			dubsStore.setState('sleeping');
+			dubsStore.setState('dubs_sleeping');
 		}
 	});
 
@@ -89,7 +89,7 @@
 			console.log('📊 Python focus update:', data);
 			if (data.focused) {
 				console.log('✅ User FOCUSED - Dubs sleeping');
-				dubsStore.setState('sleeping');
+				dubsStore.setState('dubs_sleeping');
 			} else {
 				console.log('⚠️ User UNFOCUSED - Dubs barking');
 				dubsStore.setState('barking');
@@ -112,11 +112,11 @@
 		<img src={`/${dubsStore.spriteFile}`} alt="Dubs the mascot" class="dubs-sprite" />
 	</div>
 
-	{#if sessionStore.isActive && dubsStore.state !== 'sleeping'}
+	{#if sessionStore.isActive && dubsStore.state !== 'dubs_sleeping'}
 		<div class="thought-bubble">
-			{#if dubsStore.state === 'alert'}
+			{#if dubsStore.state === 'dubs_light_bark'}
 				<p>Hey! Stay focused! 🎯</p>
-			{:else if dubsStore.state === 'barking'}
+			{:else if dubsStore.state === 'dubs_heavy_bark'}
 				<p>LOCK IN! 🔥</p>
 			{/if}
 		</div>
