@@ -51,24 +51,28 @@ class BedrockService {
 		try {
 			console.log('🤖 Calling Amazon Bedrock...');
 
-			const prompt = this.buildPrompt(context);
+			const systemPrompt = this.buildSystemPrompt();
+			const userPrompt = this.buildUserPrompt(context);
 
-			// Prepare request body for Claude Haiku 4.5
 			const requestBody = {
-				anthropic_version: "bedrock-2023-05-31",
-				max_tokens: 100,
-				temperature: 0.7,
 				messages: [
 					{
+						role: "system",
+						content: systemPrompt
+					},
+					{
 						role: "user",
-						content: prompt
+						content: userPrompt
 					}
-				]
+				],
+				max_tokens: 100,
+				temperature: 0.7,
+				reasoning_effort: "low"
 			};
 
 			// Invoke the model
 			const command = new InvokeModelCommand({
-				modelId: 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+				modelId: 'openai.gpt-oss-120b-1:0',
 				contentType: 'application/json',
 				accept: 'application/json',
 				body: JSON.stringify(requestBody)
@@ -76,7 +80,30 @@ class BedrockService {
 
 			const response = await this.client.send(command);
 			const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-			const generatedText = responseBody.content?.[0]?.text?.trim();
+
+			// OpenAI format: choices[0].message.content
+			let generatedText = responseBody.choices?.[0]?.message?.content?.trim();
+
+			// Clean up any potential artifacts
+			if (generatedText) {
+				// Remove reasoning tags if present
+				generatedText = generatedText.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '').trim();
+
+				// Remove common prefixes that might appear
+				generatedText = generatedText
+					.replace(/^Here is an exclamation:?\s*/i, '')
+					.replace(/^Here's an exclamation:?\s*/i, '')
+					.replace(/^Exclamation:?\s*/i, '')
+					.trim();
+
+				// If text is still empty after removing reasoning tags, extract from reasoning
+				if (!generatedText || generatedText.length < 5) {
+					const reasoningMatch = responseBody.choices?.[0]?.message?.content?.match(/<reasoning>[\s\S]*?"([^"]+)"[\s\S]*?<\/reasoning>/i);
+					if (reasoningMatch && reasoningMatch[1]) {
+						generatedText = reasoningMatch[1];
+					}
+				}
+			}
 
 			console.log('✅ Bedrock response:', generatedText);
 			return generatedText || 'Hey! Get back to work and stay focused! 🎯';
@@ -87,13 +114,10 @@ class BedrockService {
 	}
 
 	/**
-	 * Build the prompt for Bedrock with context
-	 * @param {Object} context - Distraction context
-	 * @returns {string} Formatted prompt
+	 * Build the system prompt
+	 * @returns {string} System prompt
 	 */
-	buildPrompt(context) {
-		const contextString = JSON.stringify(context, null, 2);
-
+	buildSystemPrompt() {
 		return `Persona:
 Your personality is that of a loyal, intelligent, and slightly judgmental dog companion. You communicate in short, one sentence MAX exclamations. You think and talk like a dog, so your world revolves around walks, treats, naps, squirrels, and making your human proud. You are supportive, but you get very disappointed when your owner gets distracted, and you aren't afraid to show it.
 Task:
@@ -111,11 +135,17 @@ How to use this data:
 - Call out how much time they've already invested or have left
 - Remind them of their specific goal
 Rules for Your Response:
-Output ONLY the exclamation text. Do not add any conversational text before or after, like 'Here is an exclamation:'. Keep it short. Aim for 15 words or less. ONE SENTENCE MAX. Do NOT use EM DASHES. Incorporate dog-like themes. Think about what a dog would say or care about. Use a mix of tones: guilt, loss aversion, sternness, and disappointed companionship.
-Here is the context:
-${contextString}
+Output ONLY the exclamation text. Do not add any conversational text before or after, like 'Here is an exclamation:'. Keep it short. Aim for 15 words or less. ONE SENTENCE MAX. Do NOT use EM DASHES. Incorporate dog-like themes. Think about what a dog would say or care about. Use a mix of tones: guilt, loss aversion, sternness, and disappointed companionship.`;
+	}
 
-Generate the exclamation using this context now.`;
+	/**
+	 * Build the user prompt with context
+	 * @param {Object} context - Distraction context
+	 * @returns {string} User prompt
+	 */
+	buildUserPrompt(context) {
+		const contextString = JSON.stringify(context, null, 2);
+		return `Here is the context:\n${contextString}\n\nGenerate the exclamation using this context now.`;
 	}
 }
 
