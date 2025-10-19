@@ -45,6 +45,7 @@
 		"vite": "^7.1.10"
 	},
 	"dependencies": {
+		"dotenv": "^17.2.3",
 		"electron-squirrel-startup": "^1.0.1",
 		"get-windows": "^9.2.3"
 	}

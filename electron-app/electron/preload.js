@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	toggleOverlay: (visible) => ipcRenderer.send('toggle-overlay', visible),
 	setDubsState: (state) => ipcRenderer.send('set-dubs-state', state),
 
+	// Voice notifications
+	playVoiceNotification: () => ipcRenderer.invoke('play-voice-notification'),
+
 	// Listeners for updates from main process
 	onActiveWindowUpdate: (callback) => {
 		ipcRenderer.on('active-window-update', (event, data) => callback(data));

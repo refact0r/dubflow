@@ -4,10 +4,15 @@ import { app, BrowserWindow, screen } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import started from 'electron-squirrel-startup';
+import dotenv from 'dotenv';
 import PythonIPCInterface from './py_interfacer.js';
 import { WindowTracker } from './window-tracker.js';
 import { SessionManager } from './session-manager.js';
+import ElevenLabsService from './elevenlabs-service.js';
 import { setupIPCHandlers, setupPythonIPCForwarding, cleanupIPCHandlers } from './ipc-handlers.js';
+
+// Load environment variables
+dotenv.config();
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +31,7 @@ let pythonIPC = null;
 // Core managers
 let windowTracker = null;
 let sessionManager = null;
+let elevenLabsService = null;
 
 // Helper functions to get window references (for IPC handlers)
 const getMainWindow = () => mainWindow;
@@ -129,6 +135,9 @@ const initializeServices = () => {
 	// Initialize Session Manager
 	sessionManager = new SessionManager();
 
+	// Initialize ElevenLabs Service
+	elevenLabsService = new ElevenLabsService();
+
 	// Initialize Python IPC connection
 	pythonIPC = new PythonIPCInterface();
 	pythonIPC.connect();
@@ -140,7 +149,8 @@ const initializeServices = () => {
 	setupIPCHandlers({
 		sessionManager,
 		windowTracker,
-		getOverlayWindow
+		getOverlayWindow,
+		elevenLabsService
 	});
 
 	// Setup Python IPC event forwarding

@@ -11,8 +11,9 @@ import { ipcMain } from 'electron';
  * @param {SessionManager} deps.sessionManager - Session manager instance
  * @param {WindowTracker} deps.windowTracker - Window tracker instance
  * @param {BrowserWindow} deps.overlayWindow - Overlay window reference
+ * @param {ElevenLabsService} deps.elevenLabsService - ElevenLabs voice service
  */
-export const setupIPCHandlers = ({ sessionManager, windowTracker, getOverlayWindow }) => {
+export const setupIPCHandlers = ({ sessionManager, windowTracker, getOverlayWindow, elevenLabsService }) => {
 	console.log('🔌 Setting up IPC handlers...');
 
 	// Session Management
@@ -47,6 +48,31 @@ export const setupIPCHandlers = ({ sessionManager, windowTracker, getOverlayWind
 		const overlayWindow = getOverlayWindow();
 		if (overlayWindow && !overlayWindow.isDestroyed()) {
 			overlayWindow.webContents.send('dubs-state-change', state);
+		}
+	});
+
+	// Voice Notification Handler
+	ipcMain.handle('play-voice-notification', async () => {
+		try {
+			console.log('🎙️ Voice notification requested');
+			const result = await elevenLabsService.playDistractionNotification();
+			
+			if (result.success) {
+				// Convert buffer to base64 for transmission
+				return {
+					success: true,
+					audioData: result.audioData.toString('base64'),
+					message: result.message
+				};
+			} else {
+				return result;
+			}
+		} catch (error) {
+			console.error('❌ Voice notification error:', error);
+			return {
+				success: false,
+				error: error.message
+			};
 		}
 	});
 
@@ -107,5 +133,6 @@ export const cleanupIPCHandlers = () => {
 	ipcMain.removeAllListeners('toggle-overlay');
 	ipcMain.removeAllListeners('set-dubs-state');
 	ipcMain.removeHandler('get-session-state');
+	ipcMain.removeHandler('play-voice-notification');
 	console.log('🧹 IPC handlers cleaned up');
 };

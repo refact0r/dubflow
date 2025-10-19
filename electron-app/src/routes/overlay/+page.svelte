@@ -5,6 +5,40 @@
 	let previousProductiveState = $state(true);
 	let stateTimeout = null;
 
+	/**
+	 * Play voice notification using ElevenLabs
+	 */
+	async function playVoiceNotification() {
+		try {
+			console.log('🎙️ Requesting voice notification...');
+			const result = await window.electronAPI.playVoiceNotification();
+
+			if (result.success) {
+				console.log(`✅ Playing message: "${result.message}"`);
+				
+				// Convert base64 audio data to audio buffer
+				const audioData = Uint8Array.from(atob(result.audioData), c => c.charCodeAt(0));
+				const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
+				const audioUrl = URL.createObjectURL(audioBlob);
+				
+				// Play the audio
+				const audio = new Audio(audioUrl);
+				audio.play().catch(err => {
+					console.error('Failed to play audio:', err);
+				});
+
+				// Clean up URL after playing
+				audio.onended = () => {
+					URL.revokeObjectURL(audioUrl);
+				};
+			} else {
+				console.log('⏭️ Voice notification skipped:', result.error);
+			}
+		} catch (error) {
+			console.error('❌ Voice notification error:', error);
+		}
+	}
+
 	// React to productivity changes
 	$effect(() => {
 		const isProductive = activeWindowStore.isProductive;
@@ -26,6 +60,8 @@
 					stateTimeout = setTimeout(() => {
 						if (!activeWindowStore.isProductive) {
 							dubsStore.setState('barking');
+							// Play voice notification when barking starts
+							playVoiceNotification();
 						}
 					}, 5000);
 				}, 2000);
@@ -57,6 +93,8 @@
 			} else {
 				console.log('⚠️ User UNFOCUSED - Dubs barking');
 				dubsStore.setState('barking');
+				// Play voice notification when barking starts
+				playVoiceNotification();
 			}
 		});
 
