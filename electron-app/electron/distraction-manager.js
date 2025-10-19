@@ -35,7 +35,7 @@ export class DistractionManager extends EventEmitter {
 		this.lastTriggerSource = null;
 
 		// Configuration
-		this.DISTRACTION_THRESHOLD = 5000; // 5 seconds in milliseconds
+		this.DISTRACTION_THRESHOLD = 1000; // 2 seconds in milliseconds
 		this.CHECK_INTERVAL = 500; // Check every 500 milliseconds
 
 		// Registered windows for broadcasting
@@ -69,12 +69,12 @@ export class DistractionManager extends EventEmitter {
 	updateWindowState(windowInfo) {
 		if (!windowInfo) return;
 
-		console.log('🪟 Window state updated:', {
-			appName: windowInfo.appName,
-			url: windowInfo.url,
-			isProductive: windowInfo.isProductive,
-			sessionActive: this.sessionManager.isSessionActive()
-		});
+		// console.log('🪟 Window state updated:', {
+		// 	appName: windowInfo.appName,
+		// 	url: windowInfo.url,
+		// 	isProductive: windowInfo.isProductive,
+		// 	sessionActive: this.sessionManager.isSessionActive()
+		// });
 
 		this.currentWindowInfo = windowInfo;
 		const wasWindowDistracted = this.isWindowDistracted;
@@ -147,13 +147,13 @@ export class DistractionManager extends EventEmitter {
 	checkDistractionState() {
 		const sessionActive = this.sessionManager.isSessionActive();
 		const sessionPaused = this.sessionManager.isSessionPaused();
-		console.log('🔍 Checking distraction state:', {
-			sessionActive,
-			sessionPaused,
-			isWindowDistracted: this.isWindowDistracted,
-			isEyeDistracted: this.isEyeDistracted,
-			hasTimer: !!this.distractionStartTime
-		});
+		// console.log('🔍 Checking distraction state:', {
+		// 	sessionActive,
+		// 	sessionPaused,
+		// 	isWindowDistracted: this.isWindowDistracted,
+		// 	isEyeDistracted: this.isEyeDistracted,
+		// 	hasTimer: !!this.distractionStartTime
+		// });
 
 		// Only track distractions if a session is active AND not paused
 		if (!sessionActive || sessionPaused) {
@@ -170,6 +170,7 @@ export class DistractionManager extends EventEmitter {
 			this.startTimer();
 		} else if (!isDistracted && this.distractionStartTime) {
 			// User is focused again, reset timer (hard reset)
+			
 			console.log('✅ User refocused, resetting timer');
 			this.resetTimer();
 			this.broadcastRefocus();
@@ -457,7 +458,6 @@ export class DistractionManager extends EventEmitter {
 	 */
 	broadcastRefocus() {
 		console.log('😴 Broadcasting refocus event to reset dog state...');
-
 		// Clean up destroyed windows
 		for (const window of this.windows) {
 			if (window.isDestroyed()) {
