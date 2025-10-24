@@ -41,7 +41,9 @@
 ```
 /electron-app/       # Main Electron + SvelteKit application
   /electron/         # Electron core logic (main process, IPC, window tracking)
-  /src/              # SvelteKit frontend (routes, components, stores)
+  /src/              # SvelteKit frontend
+    /lib/            # Frontend stores and logic
+    /routes/         # Frontend routes/pages
   /static/           # Dubs animation GIFs and assets
 
 /local/              # Python vision system (focus detection, webcam monitoring)
